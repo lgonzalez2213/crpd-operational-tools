@@ -1,0 +1,2896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRPD Special Event Tracker</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root {
+  --navy:#012A4A; --navy-mid:#024270; --teal:#87CBDE; --teal-light:#EDF8FB;
+  --teal-med:#C4E5EF; --teal-web:#0E96BC; --blue-sec:#5B8DB8;
+  --bg:#E9F4FA; --white:#fff; --text:#0d1f2d; --text-mid:#3a5a72;
+  --border:#b8d9e8; --green:#1a7a4a; --green-bg:#e6f5ee;
+  --amber:#b85c00; --amber-bg:#fff4e6; --red:#a02020; --red-bg:#fdecea;
+  --gray:#8a9fb0; --gray-bg:#f0f4f7;
+  --shadow:0 2px 12px rgba(1,42,74,.10); --shadow-lg:0 6px 28px rgba(1,42,74,.15);
+  --font-sans: 'Segoe UI', Arial, sans-serif;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:var(--font-sans);background:var(--bg);color:var(--text);font-size:14px}
+
+/* ── HEADER ── */
+.app-header{background:var(--navy);color:var(--white);position:relative;z-index:400;box-shadow:var(--shadow-lg);}
+.header-top{display:flex;align-items:center;gap:14px;padding:9px 20px;border-bottom:2px solid var(--teal-web);}
+.badge-shield{width:34px;height:34px;background:var(--teal-web);clip-path:polygon(50% 0%,92% 15%,100% 40%,92% 75%,50% 100%,8% 75%,0% 40%,8% 15%);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--font-mono);font-size:8px;font-weight:700;color:var(--navy);letter-spacing:-.5px;}
+.header-title-block{flex:1;}
+.dept-name{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--teal);line-height:1;}
+.app-title{font-size:15px;font-weight:700;color:var(--white);margin-top:2px;}
+.header-btns{display:flex;gap:6px;align-items:center;}
+.header-clock{font-family:var(--font-mono);font-size:12px;color:var(--teal);text-align:right;line-height:1.4;}
+.header-clock span{display:block;font-size:9px;color:var(--blue-sec);}
+.event-meta-bar{background:var(--navy-mid);padding:6px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.meta-item{display:flex;align-items:center;gap:5px;}
+.meta-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--teal-med);font-weight:700;}
+.meta-value{font-size:11px;font-weight:600;color:var(--white);font-family:var(--font-mono);}
+.meta-value.editable{cursor:pointer;border-bottom:1px dashed var(--teal);}
+.meta-value.editable:hover{color:var(--teal);}
+.meta-div{width:1px;height:20px;background:rgba(135,203,222,.2);}
+
+/* ── SETUP PANEL ── */
+.setup-panel{background:var(--navy);color:var(--white);padding:16px 20px;display:none;border-bottom:2px solid var(--teal-web);position:relative;z-index:390;}
+.setup-panel.visible{display:block;}
+.setup-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.setup-field{display:flex;flex-direction:column;gap:3px;}
+.setup-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--teal-med);}
+.setup-input{padding:6px 9px;border:1px solid rgba(135,203,222,.3);border-radius:5px;background:rgba(255,255,255,.08);color:var(--white);font-family:var(--font-sans);font-size:12px;}
+.setup-input::placeholder{color:rgba(255,255,255,.3);}
+.setup-input:focus{outline:none;border-color:var(--teal);background:rgba(255,255,255,.12);}
+.setup-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
+
+/* ── STATS STRIP ── */
+.stat-strip{background:var(--white);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;gap:0;flex-shrink:0;}
+.stat-box{flex:1;text-align:center;padding:4px 8px;border-right:1px solid var(--border);}
+.stat-box:last-child{border-right:none;}
+.stat-num{font-family:var(--font-mono);font-size:20px;font-weight:700;line-height:1;}
+.stat-lbl{font-size:8px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gray);margin-top:2px;font-weight:700;}
+.s-total .stat-num{color:var(--navy)} .s-staffed .stat-num{color:var(--green)} .s-unstaffed .stat-num{color:var(--red)} .s-issue .stat-num{color:var(--amber)} .s-officers .stat-num{color:var(--blue-sec)} .s-available .stat-num{color:var(--teal-web)}
+
+/* ── VIEW TABS ── */
+.view-tabs{display:flex;background:var(--white);border-bottom:2px solid var(--border);flex-shrink:0;}
+.view-tab{padding:8px 20px;font-size:12px;font-weight:700;cursor:pointer;border:none;background:none;color:var(--gray);letter-spacing:.5px;text-transform:uppercase;font-family:var(--font-sans);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;}
+.view-tab:hover{color:var(--navy);}
+.view-tab.active{color:var(--teal-web);border-bottom-color:var(--teal-web);}
+
+/* ── APP BODY LAYOUT ── */
+.app-body{display:flex;flex:1;overflow:hidden;min-height:0;}
+.sidebar{width:290px;flex-shrink:0;background:var(--white);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;}
+.content-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+
+/* ── BOARD VIEW ── */
+.board-view{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+.board-view.hidden,.map-view.hidden{display:none;}
+
+/* ── MAP VIEW ── */
+.map-view{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.map-toolbar{background:var(--white);border-bottom:1px solid var(--border);padding:7px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+.map-toolbar-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--blue-sec);margin-right:4px;}
+.tool-btn{padding:5px 11px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid var(--border);background:var(--bg);cursor:pointer;color:var(--text-mid);transition:all .15s;display:flex;align-items:center;gap:5px;font-family:var(--font-sans);}
+.tool-btn:hover{border-color:var(--teal-web);color:var(--navy);background:var(--teal-light);}
+.tool-btn.active{background:var(--navy);color:var(--white);border-color:var(--navy);}
+.tool-btn.danger{color:var(--red);}
+.tool-btn.danger:hover{background:var(--red-bg);border-color:var(--red);}
+.tool-sep{width:1px;height:20px;background:var(--border);margin:0 2px;}
+.post-select-wrap{display:flex;align-items:center;gap:6px;}
+.post-select-wrap label{font-size:10px;font-weight:700;color:var(--blue-sec);white-space:nowrap;}
+.post-select-wrap select{font-size:11px;padding:4px 7px;border:1px solid var(--border);border-radius:4px;background:var(--bg);font-family:var(--font-sans);color:var(--text);cursor:pointer;}
+.post-select-wrap select:focus{outline:none;border-color:var(--teal-web);}
+#map{flex:1;min-height:0;}
+
+/* Map instruction banner */
+.map-hint{background:rgba(1,42,74,.85);color:var(--teal-light);font-size:11px;font-weight:600;padding:6px 14px;text-align:center;flex-shrink:0;letter-spacing:.3px;display:none;}
+.map-hint.visible{display:block;}
+
+/* ── SIDEBAR SECTIONS ── */
+.sidebar-section{border-bottom:1px solid var(--border);padding:12px;}
+.sidebar-section-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--blue-sec);margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;}
+.sidebar-section-title .count-badge{background:var(--navy);color:var(--white);font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;font-family:var(--font-mono);}
+
+/* Officer Card */
+.officer-card{display:flex;align-items:center;gap:7px;padding:6px 7px;border-radius:5px;background:var(--bg);margin-bottom:4px;border:1px solid var(--border);cursor:grab;user-select:none;position:relative;transition:all .15s;}
+.officer-card:hover{border-color:var(--teal-web);background:var(--teal-light);}
+.officer-card.dragging{opacity:.4;cursor:grabbing;}
+.officer-card.assigned{background:var(--green-bg);border-color:#aedcc4;}
+.officer-avatar{width:26px;height:26px;border-radius:50%;background:var(--navy);color:var(--white);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--font-mono);}
+.officer-avatar.sup{background:var(--teal-web);}
+.officer-info{flex:1;min-width:0;}
+.officer-name{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.officer-rank{font-size:9px;color:var(--gray);}
+.officer-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dot-available{background:var(--green)} .dot-assigned{background:var(--blue-sec)} .dot-unavailable{background:var(--gray)}
+
+/* Forms */
+.add-form{display:flex;flex-direction:column;gap:5px;}
+.add-form input,.add-form select{width:100%;padding:5px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:11px;color:var(--text);background:var(--bg);}
+.add-form input:focus,.add-form select:focus{outline:none;border-color:var(--teal-web);background:var(--white);}
+.add-form .form-row{display:flex;gap:5px;}
+.add-form .form-row input,.add-form .form-row select{flex:1;}
+.btn{padding:6px 11px;border-radius:5px;font-family:var(--font-sans);font-size:11px;font-weight:700;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px;}
+.btn-primary{background:var(--navy);color:var(--white);}
+.btn-primary:hover{background:var(--navy-mid);}
+.btn-teal{background:var(--teal-web);color:var(--white);}
+.btn-teal:hover{background:#0a7da0;}
+.btn-sm{padding:4px 8px;font-size:10px;}
+.btn-ghost{background:transparent;color:var(--gray);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--gray-bg);color:var(--text);}
+.btn-setup-save{background:var(--teal-web);color:var(--white);padding:7px 16px;border-radius:5px;font-weight:700;border:none;cursor:pointer;font-family:var(--font-sans);font-size:12px;}
+.btn-setup-save:hover{background:#0a7da0;}
+.btn-setup-cancel{background:transparent;color:var(--teal-med);padding:7px 12px;border-radius:5px;font-weight:600;border:1px solid rgba(135,203,222,.3);cursor:pointer;font-family:var(--font-sans);font-size:12px;}
+
+/* Board Post Cards */
+.zone-group{margin-bottom:4px;}
+.zone-header{display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:5px 5px 0 0;cursor:pointer;user-select:none;}
+.zone-header:hover{filter:brightness(1.1);}
+.zone-name{font-size:10px;font-weight:700;color:var(--white);text-transform:uppercase;letter-spacing:1px;flex:1;}
+.zone-meta{font-size:9px;color:rgba(255,255,255,.7);font-family:var(--font-mono);}
+.zone-chevron{color:rgba(255,255,255,.8);font-size:9px;transition:transform .2s;}
+.zone-chevron.open{transform:rotate(90deg);}
+.zone-posts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:7px;padding:7px;background:var(--white);border:1px solid var(--border);border-top:none;border-radius:0 0 5px 5px;}
+.post-card{border:1px solid var(--border);border-radius:5px;overflow:hidden;background:var(--white);transition:all .15s;}
+.post-card:hover{box-shadow:var(--shadow);}
+.post-card.drag-over{border-color:var(--teal-web);box-shadow:0 0 0 2px rgba(14,150,188,.3);}
+.post-card-header{padding:7px 9px;display:flex;align-items:flex-start;gap:7px;border-bottom:1px solid var(--border);}
+.post-status-bar{width:4px;border-radius:2px;flex-shrink:0;align-self:stretch;min-height:28px;}
+.status-staffed{background:var(--green)} .status-unstaffed{background:var(--red)} .status-issue{background:var(--amber)} .status-standby{background:var(--blue-sec)}
+.post-info{flex:1;min-width:0;}
+.post-number{font-family:var(--font-mono);font-size:8px;font-weight:700;color:var(--gray);letter-spacing:1px;}
+.post-name{font-size:12px;font-weight:700;color:var(--navy);}
+.post-location{font-size:9px;color:var(--text-mid);margin-top:1px;}
+.post-actions{display:flex;gap:3px;}
+.icon-btn{width:20px;height:20px;border-radius:3px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;transition:all .15s;color:var(--gray);}
+.icon-btn:hover{background:var(--teal-light);color:var(--navy);border-color:var(--teal-web);}
+.icon-btn.danger:hover{background:var(--red-bg);color:var(--red);border-color:#f0c0c0;}
+.post-card-body{padding:7px 9px;}
+.post-detail-row{display:flex;gap:5px;margin-bottom:4px;flex-wrap:wrap;align-items:center;}
+.post-tag{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;background:var(--teal-light);color:var(--blue-sec);font-family:var(--font-mono);}
+.post-tag.priority-high{background:var(--red-bg);color:var(--red);}
+.post-tag.priority-med{background:var(--amber-bg);color:var(--amber);}
+.post-tag.on-map{background:#e8f5e9;color:var(--green);}
+.status-select{border:1px solid var(--border);border-radius:3px;padding:2px 5px;font-family:var(--font-sans);font-size:10px;color:var(--text);background:var(--bg);cursor:pointer;}
+.assignment-slot{min-height:32px;border-radius:4px;border:1.5px dashed var(--border);display:flex;align-items:center;gap:7px;padding:4px 7px;transition:all .15s;background:var(--bg);margin-top:4px;}
+.assignment-slot:hover{border-color:var(--teal-web);}
+.assignment-slot.filled{border-style:solid;border-color:var(--green);background:var(--green-bg);}
+.assignment-slot.drop-target{border-color:var(--teal-web);background:var(--teal-light);}
+.slot-empty-label{font-size:10px;color:var(--gray);font-style:italic;flex:1;}
+.assigned-name{font-size:11px;font-weight:700;color:var(--navy);flex:1;}
+.assigned-rank{font-size:9px;color:var(--text-mid);}
+.unassign-btn{background:none;border:none;cursor:pointer;color:var(--gray);font-size:11px;padding:1px 3px;border-radius:3px;}
+.unassign-btn:hover{color:var(--red);background:var(--red-bg);}
+.post-notes{width:100%;resize:none;border:1px solid var(--border);border-radius:3px;padding:4px 6px;font-family:var(--font-sans);font-size:10px;color:var(--text);background:var(--white);margin-top:5px;}
+.post-notes:focus{outline:none;border-color:var(--teal-web);}
+.empty-zone{grid-column:1/-1;text-align:center;padding:20px;color:var(--gray);font-size:11px;font-style:italic;}
+.board-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.section-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--blue-sec);flex:1;}
+.filter-btns{display:flex;gap:3px;}
+.filter-btn{padding:3px 9px;border-radius:4px;font-size:10px;font-weight:700;border:1px solid var(--border);background:var(--white);cursor:pointer;color:var(--gray);transition:all .15s;}
+.filter-btn.active{background:var(--navy);color:var(--white);border-color:var(--navy);}
+.filter-btn:hover:not(.active){border-color:var(--teal-web);color:var(--text);}
+
+/* ── LOG PANEL ── */
+.log-panel{background:var(--navy);color:var(--white);padding:8px 14px;max-height:110px;overflow-y:auto;font-family:var(--font-mono);font-size:10px;border-top:2px solid var(--teal-web);flex-shrink:0;}
+.log-entry{display:flex;gap:9px;margin-bottom:3px;line-height:1.4;}
+.log-time{color:var(--teal);flex-shrink:0;}
+.log-msg{color:rgba(255,255,255,.8);}
+.log-msg em{color:var(--teal-med);font-style:normal;}
+.log-title{font-size:8px;text-transform:uppercase;letter-spacing:2px;color:var(--blue-sec);margin-bottom:6px;font-weight:700;}
+
+/* ── MAP LEGEND ── */
+.map-legend{position:absolute;bottom:24px;right:10px;z-index:500;background:rgba(1,42,74,.92);border-radius:7px;padding:10px 12px;color:var(--white);font-size:10px;min-width:140px;pointer-events:none;}
+.legend-title{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--teal-med);margin-bottom:8px;}
+.legend-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,.4);}
+.legend-line{width:20px;height:3px;flex-shrink:0;border-radius:2px;}
+.legend-rect{width:14px;height:10px;flex-shrink:0;border-radius:2px;}
+.legend-label{font-size:10px;color:rgba(255,255,255,.85);}
+
+/* ── TOAST ── */
+.toast-container{position:fixed;bottom:16px;right:16px;z-index:600;display:flex;flex-direction:column;gap:5px;}
+.toast{background:var(--navy);color:var(--white);padding:9px 14px;border-radius:5px;font-size:11px;font-weight:600;border-left:3px solid var(--teal-web);box-shadow:var(--shadow-lg);animation:slideIn .2s ease,fadeOut .3s 2.7s ease forwards;max-width:260px;}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0;transform:translateY(4px)}}
+
+/* Leaflet popup customization */
+.leaflet-popup-content-wrapper{background:var(--navy);color:var(--white);border:1px solid var(--teal-web);border-radius:7px;box-shadow:var(--shadow-lg);}
+.leaflet-popup-content{margin:10px 14px;font-family:var(--font-sans);font-size:12px;}
+.leaflet-popup-tip{background:var(--navy);}
+.leaflet-popup-close-button{color:var(--teal) !important;}
+.popup-title{font-weight:700;font-size:13px;color:var(--white);margin-bottom:4px;}
+.popup-sub{font-size:10px;color:var(--teal-med);margin-bottom:6px;}
+.popup-row{display:flex;gap:8px;align-items:center;margin-bottom:3px;}
+.popup-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--teal);min-width:50px;}
+.popup-val{font-size:11px;color:rgba(255,255,255,.9);}
+.popup-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;font-family:var(--font-mono);}
+.pb-staffed{background:#1a7a4a;color:#fff} .pb-unstaffed{background:#a02020;color:#fff} .pb-issue{background:#b85c00;color:#fff} .pb-standby{background:#5B8DB8;color:#fff}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--teal)}
+
+@media print{
+  .sidebar,.header-top,.board-controls,.post-actions,.map-toolbar,.map-hint,
+  .log-panel,.setup-panel,.toast-container,.view-tabs,.btn{display:none!important}
+  .app-body{display:block} .board-view{overflow:visible}
+  .post-card{break-inside:avoid} body{overflow:auto}
+}
+
+/* ── SHIFT BADGES ── */
+.shift-badge{display:inline-block;font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;font-family:var(--font-mono);letter-spacing:.5px;}
+.shift-a{background:#e8f5e9;color:#1a7a4a;} .shift-b{background:#e8edf5;color:#012A4A;} .shift-c{background:#fff4e6;color:#b85c00;} .shift-all{background:var(--gray-bg);color:var(--gray);}
+.shift-filter-btns{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap;}
+.shift-filter-btn{padding:3px 8px;border-radius:4px;font-size:9px;font-weight:700;border:1px solid var(--border);background:var(--bg);cursor:pointer;color:var(--gray);transition:all .15s;font-family:var(--font-mono);}
+.shift-filter-btn.active{background:var(--navy);color:var(--white);border-color:var(--navy);}
+.officer-card.shift-dimmed{opacity:.35;cursor:not-allowed;}
+
+/* ── RESOURCE CARDS ── */
+.resource-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;}
+.resource-card{background:var(--white);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.resource-card-header{padding:7px 10px;display:flex;align-items:center;gap:7px;}
+.resource-icon{width:28px;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.resource-name{font-size:12px;font-weight:700;color:var(--navy);flex:1;}
+.resource-body{padding:6px 10px 9px;}
+.resource-meta{font-size:10px;color:var(--text-mid);margin-bottom:3px;}
+.res-status{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;font-family:var(--font-mono);}
+.res-available{background:var(--green-bg);color:var(--green);} .res-deployed{background:var(--teal-light);color:var(--teal-web);} .res-oos{background:var(--red-bg);color:var(--red);}
+.res-qty-row{display:flex;align-items:center;gap:6px;margin-top:5px;}
+.res-qty-label{font-size:9px;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:1px;}
+.res-qty-val{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--navy);}
+
+/* ── WEATHER WIDGET ── */
+.weather-widget{background:var(--white);border:1px solid var(--border);border-radius:7px;overflow:hidden;margin-bottom:16px;}
+.weather-header{background:var(--navy);padding:9px 14px;display:flex;align-items:center;justify-content:space-between;}
+.weather-title{font-size:10px;font-weight:700;color:var(--teal-med);text-transform:uppercase;letter-spacing:1.5px;}
+.weather-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0;}
+.weather-period{padding:10px 12px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+.weather-period:last-child{border-right:none;}
+.weather-period-name{font-size:9px;font-weight:700;color:var(--blue-sec);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.weather-temp{font-size:20px;font-weight:700;font-family:var(--font-mono);color:var(--navy);}
+.weather-desc{font-size:10px;color:var(--text-mid);margin-top:3px;line-height:1.4;}
+.weather-loading{padding:20px;text-align:center;color:var(--gray);font-size:11px;font-style:italic;}
+
+/* ── TEMPLATE MODAL ── */
+.modal-overlay-full{position:fixed;inset:0;background:rgba(1,42,74,.55);z-index:700;display:flex;align-items:center;justify-content:center;}
+.modal-box-lg{background:var(--white);border-radius:10px;box-shadow:var(--shadow-lg);width:560px;max-width:95vw;max-height:85vh;overflow-y:auto;}
+.modal-hdr{padding:14px 18px;background:var(--navy);color:var(--white);display:flex;align-items:center;justify-content:space-between;border-radius:10px 10px 0 0;}
+.modal-hdr-title{font-size:14px;font-weight:700;}
+.modal-close-btn{background:none;border:none;color:var(--teal-med);font-size:18px;cursor:pointer;padding:2px 6px;border-radius:4px;}
+.modal-close-btn:hover{background:rgba(255,255,255,.1);color:var(--white);}
+.modal-body-lg{padding:18px;}
+.template-card{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+.template-name{font-size:12px;font-weight:700;color:var(--navy);flex:1;}
+.template-meta{font-size:10px;color:var(--gray);}
+
+/* ── PARTIAL STAFFED STATUS ── */
+.status-partial{background:linear-gradient(to bottom,var(--green) 50%,var(--red) 50%);}
+.pb-partial{background:#0E96BC;color:#fff;}
+
+</style>
+</head>
+<body style="display:flex;flex-direction:column;height:100vh;overflow:hidden;">
+
+<!-- ══ HEADER ══ -->
+<header class="app-header">
+  <div class="header-top">
+    <div class="badge-shield">CRPD</div>
+    <div class="header-title-block">
+      <div class="dept-name">Castle Rock Police Department</div>
+      <div class="app-title">Special Event Resource Tracker</div>
+    </div>
+    <div class="header-btns">
+      <button class="btn btn-ghost btn-sm" onclick="toggleSetup()" id="setupBtn">⚙ Event Setup</button>
+      <button class="btn btn-teal btn-sm" onclick="generateOpsPlan()">📄 Export Ops Plan</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportLog()">↓ Export Log</button>
+      <button class="btn btn-ghost btn-sm" onclick="openTemplateModal()">📐 Templates</button>
+      <button class="btn btn-ghost btn-sm" onclick="window.print()">⎙ Print</button>
+    </div>
+    <div class="header-clock">
+      <span id="clockDate"></span>
+      <div id="clockTime"></div>
+    </div>
+  </div>
+  <div class="event-meta-bar">
+    <div class="meta-item"><span class="meta-label">Event</span><span class="meta-value editable" id="metaEventName" onclick="toggleSetup()">— Click Setup —</span></div>
+    <div class="meta-div"></div>
+    <div class="meta-item"><span class="meta-label">Date</span><span class="meta-value" id="metaDate">—</span></div>
+    <div class="meta-div"></div>
+    <div class="meta-item"><span class="meta-label">Venue</span><span class="meta-value" id="metaVenue">—</span></div>
+    <div class="meta-div"></div>
+    <div class="meta-item"><span class="meta-label">Attendance</span><span class="meta-value" id="metaAttendance">—</span></div>
+    <div class="meta-div"></div>
+    <div class="meta-item"><span class="meta-label">IC / Supervisor</span><span class="meta-value" id="metaIC">—</span></div>
+    <div class="meta-div"></div>
+    <div class="meta-item"><span class="meta-label">Channel</span><span class="meta-value" id="metaChannel">—</span></div>
+  </div>
+</header>
+
+<!-- ══ SETUP PANEL ══ -->
+<div class="setup-panel" id="setupPanel">
+  <div class="setup-grid">
+    <div class="setup-field"><label class="setup-label">Event Name</label><input class="setup-input" id="s_name" placeholder="e.g. Rock N Race 2026"/></div>
+    <div class="setup-field"><label class="setup-label">Date</label><input class="setup-input" id="s_date" type="date"/></div>
+    <div class="setup-field"><label class="setup-label">Venue / Location</label><input class="setup-input" id="s_venue" placeholder="e.g. Festival Park"/></div>
+    <div class="setup-field"><label class="setup-label">Expected Attendance</label><input class="setup-input" id="s_attendance" placeholder="e.g. 5,000"/></div>
+    <div class="setup-field"><label class="setup-label">Incident Commander</label><input class="setup-input" id="s_ic" placeholder="e.g. Sgt. Martinez"/></div>
+    <div class="setup-field"><label class="setup-label">Radio Channel</label><input class="setup-input" id="s_channel" placeholder="e.g. TAC-2"/></div>
+  </div>
+  <div class="setup-footer">
+    <button class="btn-setup-cancel" onclick="toggleSetup()">Cancel</button>
+    <button class="btn-setup-save" onclick="saveSetup()">Save Event Info</button>
+  </div>
+</div>
+
+<!-- ══ STATS STRIP ══ -->
+<div class="stat-strip">
+  <div class="stat-box s-total"><div class="stat-num" id="statTotal">0</div><div class="stat-lbl">Total Posts</div></div>
+  <div class="stat-box s-staffed"><div class="stat-num" id="statStaffed">0</div><div class="stat-lbl">Staffed</div></div>
+  <div class="stat-box s-unstaffed"><div class="stat-num" id="statUnstaffed">0</div><div class="stat-lbl">Unstaffed</div></div>
+  <div class="stat-box s-issue"><div class="stat-num" id="statIssue">0</div><div class="stat-lbl">Issue / Standby</div></div>
+  <div class="stat-box s-officers"><div class="stat-num" id="statOfficers">0</div><div class="stat-lbl">Officers</div></div>
+  <div class="stat-box s-available"><div class="stat-num" id="statAvailable">0</div><div class="stat-lbl">Available</div></div>
+</div>
+
+<!-- ══ MAIN BODY ══ -->
+<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+  <!-- Tabs -->
+  <div class="view-tabs">
+    <button class="view-tab active" id="tabBoard" onclick="switchView('board')">📋 Assignment Board</button>
+    <button class="view-tab" id="tabMap" onclick="switchView('map')">🗺 Map View</button>
+    <button class="view-tab" id="tabInfo" onclick="switchView('info')">📅 Event Info</button>
+    <button class="view-tab" id="tabSafety" onclick="switchView('safety')">🚨 Safety Plans</button>
+    <button class="view-tab" id="tabResources" onclick="switchView('resources')">🗂 Resources</button>
+  </div>
+
+  <div class="app-body" style="flex:1;overflow:hidden;min-height:0;">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar">
+      <!-- Officers -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Personnel Roster <span class="count-badge" id="rosterCount">0</span></div>
+        <div class="shift-filter-btns">
+          <button class="shift-filter-btn active" onclick="setShiftFilter('all',this)">All Shifts</button>
+          <button class="shift-filter-btn" onclick="setShiftFilter('A',this)" style="border-color:#a8d5b0;color:#1a7a4a;">Shift A</button>
+          <button class="shift-filter-btn" onclick="setShiftFilter('B',this)" style="border-color:#a8b8d5;color:#012A4A;">Shift B</button>
+          <button class="shift-filter-btn" onclick="setShiftFilter('C',this)" style="border-color:#f5d5a0;color:#b85c00;">Shift C</button>
+        </div>
+        <div class="add-form" style="margin-bottom:9px;">
+          <div class="form-row">
+            <input id="offName" placeholder="Last, First"/>
+            <input id="offBadge" placeholder="Badge #" style="width:80px;flex:none;"/>
+          </div>
+          <div class="form-row">
+            <select id="offRank">
+              <option>Officer</option><option>Corporal</option><option>Sergeant</option>
+              <option>Commander</option><option>Dispatcher</option><option>Volunteer / Reserve</option>
+            </select>
+            <input id="offVehicle" placeholder="Unit #" style="width:72px;flex:none;"/>
+          </div>
+          <input id="offRole" placeholder="Role (e.g. Traffic Control, Crowd Mgmt)"/>
+          <div class="form-row">
+            <input id="offCallSign" placeholder="Call sign (e.g. CR-12)" style="flex:1;"/>
+            <input id="offCell" placeholder="Cell phone" type="tel" style="flex:1;"/>
+          </div>
+          <div class="form-row">
+            <select id="offShift" style="flex:1;">
+              <option value="">All Day (no shift)</option>
+              <option value="A">Shift A</option>
+              <option value="B">Shift B</option>
+              <option value="C">Shift C</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="addOfficer()" style="white-space:nowrap;flex:none;">+ Add</button>
+          </div>
+        </div>
+        <div id="officerList"></div>
+      </div>
+      <!-- Zones -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Zones / Areas</div>
+        <div class="add-form">
+          <input id="zoneName" placeholder="Zone name (e.g. Perimeter, Parking)"/>
+          <div class="form-row">
+            <input id="zoneColor" type="color" value="#012A4A" style="width:32px;padding:2px;cursor:pointer;flex:none;"/>
+            <button class="btn btn-primary btn-sm" onclick="addZone()" style="flex:1;">+ Add Zone</button>
+          </div>
+        </div>
+      </div>
+      <!-- Add Post -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Add Post</div>
+        <div class="add-form">
+          <input id="postName" placeholder="Post name"/>
+          <input id="postLocation" placeholder="Location / cross streets"/>
+          <div class="form-row">
+            <select id="postZone"><option value="">-- Zone --</option></select>
+            <select id="postPriority"><option value="normal">Normal</option><option value="high">High</option><option value="med">Medium</option></select>
+          </div>
+          <div class="form-row">
+            <input id="postTimeStart" type="time"/><input id="postTimeEnd" type="time"/>
+          </div>
+          <div class="form-row" style="align-items:center;">
+            <label style="font-size:10px;color:var(--text-mid);font-weight:600;white-space:nowrap;">Slots (capacity):</label>
+            <select id="postCapacity" style="flex:1;">
+              <option value="1">1 person</option>
+              <option value="2">2 people</option>
+              <option value="3">3 people</option>
+              <option value="4">4 people</option>
+            </select>
+          </div>
+          <button class="btn btn-teal btn-sm" onclick="addPost()" style="width:100%;">+ Add Post to Board</button>
+        </div>
+      </div>
+      <!-- Legend -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Status Legend</div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex;align-items:center;gap:7px;"><div style="width:9px;height:9px;border-radius:2px;background:var(--green);"></div><span style="font-size:10px;">Staffed</span></div>
+          <div style="display:flex;align-items:center;gap:7px;"><div style="width:9px;height:9px;border-radius:2px;background:var(--red);"></div><span style="font-size:10px;">Unstaffed / Vacancy</span></div>
+          <div style="display:flex;align-items:center;gap:7px;"><div style="width:9px;height:9px;border-radius:2px;background:var(--amber);"></div><span style="font-size:10px;">Issue / Needs Attention</span></div>
+          <div style="display:flex;align-items:center;gap:7px;"><div style="width:9px;height:9px;border-radius:2px;background:var(--blue-sec);"></div><span style="font-size:10px;">Standby / Float</span></div>
+        </div>
+        <div style="margin-top:8px;font-size:9px;color:var(--gray);line-height:1.5;">Drag officer cards onto post assignment slots to assign. On map: use toolbar to place posts, draw road closures, or add labels.</div>
+      </div>
+    </aside>
+
+    <!-- ══ CONTENT PANEL ══ -->
+    <div class="content-panel">
+
+      <!-- ── BOARD VIEW ── -->
+      <div class="board-view" id="boardView">
+        <div class="board-controls">
+          <div class="section-label">Assignment Board</div>
+          <div class="filter-btns">
+            <button class="filter-btn active" onclick="filterPosts('all',this)">All</button>
+            <button class="filter-btn" onclick="filterPosts('unstaffed',this)">Unstaffed</button>
+            <button class="filter-btn" onclick="filterPosts('staffed',this)">Staffed</button>
+            <button class="filter-btn" onclick="filterPosts('issue',this)">Issue</button>
+          </div>
+        </div>
+        <div id="boardContent">
+          <div style="text-align:center;padding:50px 20px;color:var(--gray);">
+            <div style="font-size:26px;margin-bottom:10px;">📋</div>
+            <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:5px;">No posts added yet</div>
+            <div style="font-size:11px;">Add zones and posts using the sidebar to begin building your event plan.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MAP VIEW ── -->
+      <div class="map-view hidden" id="mapView">
+        <div class="map-toolbar">
+          <span class="map-toolbar-label">Tools</span>
+          <button class="tool-btn active" id="toolPan" onclick="setTool('pan')">✋ Pan / Select</button>
+          <div class="tool-sep"></div>
+          <div class="post-select-wrap">
+            <label>Place Post:</label>
+            <select id="postForPlacement" onchange="setTool('placePost')">
+              <option value="">— select post —</option>
+            </select>
+          </div>
+          <div class="tool-sep"></div>
+          <button class="tool-btn" id="toolClosure" onclick="setTool('closure')">🚧 Draw Road Closure</button>
+          <div class="tool-sep"></div>
+          <div class="post-select-wrap">
+            <label>Evac Route:</label>
+            <select id="evacRouteType">
+              <option value="primary">Primary</option>
+              <option value="secondary">Secondary</option>
+            </select>
+          </div>
+          <button class="tool-btn" id="toolEvac" onclick="setTool('evac')">🟢 Draw Evac Route</button>
+          <div class="tool-sep"></div>
+          <div class="post-select-wrap">
+            <label>Route Type:</label>
+            <select id="eventRouteType">
+              <option value="parade">Parade Path</option>
+              <option value="race">Race / Run Course</option>
+              <option value="procession">Procession</option>
+              <option value="bike">Bike Route</option>
+              <option value="staging">Vehicle Staging / Turn</option>
+              <option value="other">Other Route</option>
+            </select>
+          </div>
+          <button class="tool-btn" id="toolRoute" onclick="setTool('route')">🗺 Draw Event Route</button>
+          <div class="tool-sep"></div>
+          <div class="post-select-wrap">
+            <label>Marker:</label>
+            <select id="routeMarkerType">
+              <option value="start">🚩 Start</option>
+              <option value="finish">🏁 Finish</option>
+              <option value="checkpoint">🔵 Checkpoint</option>
+            </select>
+          </div>
+          <button class="tool-btn" id="toolRouteMarker" onclick="setTool('routeMarker')">🏁 Place Marker</button>
+          <button class="tool-btn" id="toolAssembly" onclick="setTool('assembly')">⭐ Place Assembly Point</button>
+          <div class="tool-sep"></div>
+          <button class="tool-btn" id="toolAnnotation" onclick="setTool('annotation')">🏷 Add Label</button>
+          <button class="tool-btn" id="toolErase" onclick="setTool('erase')">🗑 Erase Feature</button>
+          <div class="tool-sep"></div>
+          <button class="tool-btn" onclick="fitMapToPosts()">⊞ Fit to Posts</button>
+          <button class="tool-btn" onclick="printMap()">🖨 Print Map</button>
+          <button class="tool-btn" onclick="clearAllMapFeatures()" style="margin-left:auto;">✕ Clear All Map Features</button>
+        </div>
+        <div class="map-hint" id="mapHint"></div>
+        <div id="map" style="flex:1;"></div>
+        <!-- Legend overlay -->
+        <div class="map-legend">
+          <div class="legend-title">Map Legend</div>
+          <div class="legend-row"><div class="legend-dot" style="background:#1a7a4a;"></div><span class="legend-label">Post — Staffed</span></div>
+          <div class="legend-row"><div class="legend-dot" style="background:#a02020;"></div><span class="legend-label">Post — Unstaffed</span></div>
+          <div class="legend-row"><div class="legend-dot" style="background:#b85c00;"></div><span class="legend-label">Post — Issue</span></div>
+          <div class="legend-row"><div class="legend-dot" style="background:#5B8DB8;"></div><span class="legend-label">Post — Standby</span></div>
+          <div class="legend-row"><div class="legend-line" style="background:#cc2020;"></div><span class="legend-label">Road Closure</span></div>
+          <div class="legend-row"><div class="legend-line" style="background:#e69500;"></div><span class="legend-label">Detour Route</span></div>
+          <div class="legend-row"><div class="legend-line" style="background:#1a7a4a;"></div><span class="legend-label">Evac Route — Primary</span></div>
+          <div class="legend-row"><div class="legend-line" style="background:#0E96BC;"></div><span class="legend-label">Evac Route — Secondary</span></div>
+          <div class="legend-row"><div class="legend-line" style="background:#8B008B;"></div><span class="legend-label">Parade Path</span></div>
+          <div class="legend-row"><div class="legend-line" style="background:#E57300;"></div><span class="legend-label">Race / Run Course</span></div>
+          <div class="legend-row"><div class="legend-line" style="background:#1a3a7a;"></div><span class="legend-label">Procession</span></div>
+          <div class="legend-row"><div class="legend-line" style="background:#2E7D32;border-top:2px dashed #2E7D32;height:2px;"></div><span class="legend-label">Bike Route</span></div>
+          <div class="legend-row"><div class="legend-line" style="background:#795548;border-top:2px dashed #795548;height:2px;"></div><span class="legend-label">Vehicle Staging</span></div>
+          <div class="legend-row"><div style="font-size:10px;line-height:1;flex-shrink:0;">🚩</div><span class="legend-label">Start</span></div>
+          <div class="legend-row"><div style="font-size:10px;line-height:1;flex-shrink:0;">🏁</div><span class="legend-label">Finish</span></div>
+          <div class="legend-row"><div style="font-size:10px;line-height:1;flex-shrink:0;">🔵</div><span class="legend-label">Checkpoint</span></div>
+          <div class="legend-row"><div style="font-size:11px;line-height:1;flex-shrink:0;">⭐</div><span class="legend-label">Assembly Point</span></div>
+          <div class="legend-row"><div class="legend-dot" style="background:#0E96BC;border-radius:3px;"></div><span class="legend-label">Label / Annotation</span></div>
+        </div>
+      </div>
+
+      <!-- ── EVENT INFO VIEW ── -->
+      <div class="board-view hidden" id="infoView" style="display:none;flex-direction:column;gap:20px;max-width:900px;">
+
+        <!-- WEATHER WIDGET -->
+        <div class="weather-widget">
+          <div class="weather-header">
+            <span class="weather-title">☁ Weather — Castle Rock, CO</span>
+            <button onclick="fetchWeather()" style="background:rgba(255,255,255,.15);border:none;color:var(--teal-med);font-size:11px;font-weight:600;cursor:pointer;padding:3px 9px;border-radius:4px;font-family:var(--font-sans);">↻ Refresh</button>
+          </div>
+          <div id="weatherContent" class="weather-loading">Click Refresh to load current forecast from the National Weather Service.</div>
+        </div>
+
+        <!-- TIMELINE -->
+        <div>
+          <div class="board-controls" style="margin-bottom:10px;">
+            <div class="section-label">Event Timeline</div>
+          </div>
+
+          <!-- Add timeline entry -->
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:7px;padding:14px;margin-bottom:12px;">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--blue-sec);margin-bottom:10px;">Add Timeline Entry</div>
+            <div style="display:grid;grid-template-columns:90px 1fr 140px auto;gap:8px;align-items:end;">
+              <div>
+                <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Time</div>
+                <input id="tlTime" type="time" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-mono);font-size:12px;background:var(--bg);color:var(--text);"/>
+              </div>
+              <div>
+                <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Activity / Description</div>
+                <input id="tlLabel" placeholder="e.g. Race gun time, Road closure lifted, Award ceremony" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:12px;background:var(--bg);color:var(--text);"/>
+              </div>
+              <div>
+                <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Category</div>
+                <select id="tlCategory" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:12px;background:var(--bg);color:var(--text);">
+                  <option value="general">General</option>
+                  <option value="traffic">Traffic / Road</option>
+                  <option value="race">Race / Sport</option>
+                  <option value="stage">Stage / Performance</option>
+                  <option value="ops">Operations</option>
+                  <option value="medical">Medical / Safety</option>
+                </select>
+              </div>
+              <button class="btn btn-teal" onclick="addTimelineEntry()" style="height:32px;white-space:nowrap;">+ Add</button>
+            </div>
+            <div style="margin-top:8px;">
+              <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Notes (optional)</div>
+              <input id="tlNotes" placeholder="Additional details, responsible party, etc." style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:12px;background:var(--bg);color:var(--text);"/>
+            </div>
+          </div>
+
+          <!-- Timeline list -->
+          <div id="timelineList">
+            <div style="text-align:center;padding:30px;color:var(--gray);font-size:12px;font-style:italic;">No timeline entries yet. Add scheduled activities above.</div>
+          </div>
+        </div>
+
+        <!-- ORGANIZER CONTACTS -->
+        <div>
+          <div class="board-controls" style="margin-bottom:10px;">
+            <div class="section-label">Organizer Contacts</div>
+          </div>
+
+          <!-- Add contact -->
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:7px;padding:14px;margin-bottom:12px;">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--blue-sec);margin-bottom:10px;">Add Contact</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+              <div>
+                <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Name</div>
+                <input id="ctName" placeholder="Full name" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:12px;background:var(--bg);color:var(--text);"/>
+              </div>
+              <div>
+                <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Title / Organization</div>
+                <input id="ctTitle" placeholder="e.g. Race Director, Venue Coordinator" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:12px;background:var(--bg);color:var(--text);"/>
+              </div>
+              <div>
+                <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Primary Phone</div>
+                <input id="ctPhone" placeholder="Cell / direct line" type="tel" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-mono);font-size:12px;background:var(--bg);color:var(--text);"/>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+              <div>
+                <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Alt Phone / Radio</div>
+                <input id="ctAlt" placeholder="Secondary number or radio channel" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-mono);font-size:12px;background:var(--bg);color:var(--text);"/>
+              </div>
+              <div>
+                <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Email (optional)</div>
+                <input id="ctEmail" placeholder="email@example.com" type="email" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:12px;background:var(--bg);color:var(--text);"/>
+              </div>
+              <button class="btn btn-teal" onclick="addContact()" style="height:32px;white-space:nowrap;">+ Add</button>
+            </div>
+          </div>
+
+          <!-- Contact cards -->
+          <div id="contactList">
+            <div style="text-align:center;padding:30px;color:var(--gray);font-size:12px;font-style:italic;">No contacts added yet. Add event organizers and key contacts above.</div>
+          </div>
+        </div>
+
+      </div><!-- /infoView -->
+
+      <!-- ── SAFETY PLANS VIEW ── -->
+      <div class="board-view hidden" id="safetyView" style="display:none;flex-direction:column;gap:16px;max-width:980px;">
+
+        <!-- Header bar -->
+        <div style="background:var(--red-bg);border:1px solid #f0c0c0;border-radius:7px;padding:12px 16px;display:flex;align-items:center;gap:12px;">
+          <div style="font-size:22px;line-height:1;">🚨</div>
+          <div style="flex:1;">
+            <div style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:1.5px;">Quick-Reference Safety Plans</div>
+            <div style="font-size:11px;color:var(--text-mid);margin-top:2px;">Pre-populate each card during event planning. These are immediate-action cheat sheets — they do not replace your agency SOPs, ERG, or ICS protocols.</div>
+          </div>
+          <button class="btn btn-sm" onclick="addCustomScenario()" style="background:var(--red);color:var(--white);border:none;white-space:nowrap;flex-shrink:0;">+ Custom Scenario</button>
+        </div>
+
+        <!-- Scenario cards grid -->
+        <div id="safetyGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:14px;"></div>
+
+      </div><!-- /safetyView -->
+
+      <!-- ── RESOURCES VIEW ── -->
+      <div class="board-view hidden" id="resourcesView" style="display:none;flex-direction:column;gap:16px;max-width:980px;">
+        <div class="board-controls">
+          <div class="section-label">Equipment &amp; Resource Tracker</div>
+        </div>
+        <!-- Add resource form -->
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:7px;padding:14px;">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--blue-sec);margin-bottom:10px;">Add Resource / Equipment</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div>
+              <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Item Name</div>
+              <input id="resName" placeholder="e.g. Portable Barricade, Radio Kit" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:12px;background:var(--bg);color:var(--text);"/>
+            </div>
+            <div>
+              <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Category</div>
+              <select id="resCategory" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:12px;background:var(--bg);color:var(--text);">
+                <option value="vehicle">🚗 Vehicle</option>
+                <option value="barricade">🚧 Barricade / Signage</option>
+                <option value="radio">📻 Radio / Comms</option>
+                <option value="medical">🩺 Medical / First Aid</option>
+                <option value="lighting">💡 Lighting / Generator</option>
+                <option value="command">📋 Command / Admin</option>
+                <option value="other">📦 Other</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Quantity</div>
+              <input id="resQty" type="number" min="1" value="1" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-mono);font-size:12px;background:var(--bg);color:var(--text);"/>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;">
+            <div>
+              <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Assigned Zone</div>
+              <select id="resZone" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:12px;background:var(--bg);color:var(--text);">
+                <option value="">— No Zone —</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Location / Notes</div>
+              <input id="resLocation" placeholder="e.g. Command vehicle, North gate" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:12px;background:var(--bg);color:var(--text);"/>
+            </div>
+            <div>
+              <div style="font-size:9px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Status</div>
+              <select id="resStatus" style="width:100%;padding:6px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--font-sans);font-size:12px;background:var(--bg);color:var(--text);">
+                <option value="available">Available</option>
+                <option value="deployed">Deployed</option>
+                <option value="oos">Out of Service</option>
+              </select>
+            </div>
+            <button class="btn btn-teal" onclick="addResource()" style="height:32px;white-space:nowrap;">+ Add</button>
+          </div>
+        </div>
+        <!-- Resource stats strip -->
+        <div style="display:flex;gap:10px;flex-wrap:wrap;" id="resStats"></div>
+        <!-- Resource grid -->
+        <div class="resource-grid" id="resourceGrid">
+          <div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--gray);font-size:12px;font-style:italic;">No resources added yet. Add equipment and assets above.</div>
+        </div>
+      </div><!-- /resourcesView -->
+  </div><!-- /app-body -->
+</div>
+
+<!-- ══ TEMPLATE MODAL ══ -->
+<div id="templateModal" style="display:none;" class="modal-overlay-full" onclick="if(event.target===this)closeTemplateModal()">
+  <div class="modal-box-lg">
+    <div class="modal-hdr">
+      <span class="modal-hdr-title">📐 Event Templates</span>
+      <button class="modal-close-btn" onclick="closeTemplateModal()">×</button>
+    </div>
+    <div class="modal-body-lg">
+      <p style="font-size:11px;color:var(--text-mid);margin-bottom:14px;">Templates save your zone and post structure (without personnel assignments) so you can reuse a layout for recurring events.</p>
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="saveTemplate()">💾 Save Current Layout as Template</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportTemplates()">↓ Export Templates (JSON)</button>
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer;">↑ Import JSON <input type="file" accept=".json" onchange="importTemplates(event)" style="display:none;"/></label>
+      </div>
+      <div id="templateList"><div style="text-align:center;padding:24px;color:var(--gray);font-size:12px;font-style:italic;">No templates saved yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LOG ══ -->
+<div class="log-panel" id="activityLog">
+  <div class="log-title">Activity Log</div>
+  <div id="logEntries"></div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════
+const S = {
+  event: {name:'',date:'',venue:'',attendance:'',ic:'',channel:''},
+  officers: [], zones: [], posts: [],
+  closures: [],       // { id, name, type, latlngs }
+  annotations: [],    // { id, text, lat, lng }
+  evacRoutes: [],     // { id, name, routeType, latlngs }
+  assemblyPoints: [], // { id, name, lat, lng }
+  timeline: [],       // { id, time, label, category, notes, status }
+  contacts: [],       // { id, name, title, phone, alt, email }
+  scenarios: [],      // { id, type, ... }
+  resources: [],      // { id, name, category, qty, zone, location, status }
+  templates: [],      // { id, name, zones, posts }
+  routes: [],         // { id, name, routeType, latlngs }
+  routeMarkers: [],   // { id, name, markerType, lat, lng }
+  evacInProgress: [],
+  routeInProgress: [],
+  log: [],
+  nextId: 1,
+  activeFilter: 'all',
+  activeShift: 'all',
+  collapsedZones: {},
+  currentView: 'board',
+  currentTool: 'pan',
+  closureInProgress: [],
+  selectedPostForPlacement: null
+};
+
+// Map objects
+let map, mapMarkerLayer, closureLayer, annotationLayer, evacLayer, assemblyLayer, routeLayer, routeMarkerLayer;
+let livePolyline = null; // preview line while drawing
+let closureClickHandler = null;
+const postMarkers = {};        // postId -> L.circleMarker
+const closurePolylines = {};   // closureId -> L.polyline
+const annotationMarkers = {};  // annotationId -> L.marker
+const evacPolylines = {};      // evacRouteId -> L.polyline
+const assemblyMarkers = {};    // assemblyPointId -> L.marker
+const routePolylines = {};     // routeId -> L.polyline
+const routeMarkerObjects = {}; // routeMarkerId -> L.marker
+
+// ══════════════════════════════════════════════════
+//  CLOCK
+// ══════════════════════════════════════════════════
+function updateClock(){
+  const n=new Date(),D=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+    M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('clockDate').textContent=`${D[n.getDay()]}, ${M[n.getMonth()]} ${n.getDate()}, ${n.getFullYear()}`;
+  document.getElementById('clockTime').textContent=n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock,1000); updateClock();
+
+// ══════════════════════════════════════════════════
+//  SETUP
+// ══════════════════════════════════════════════════
+function toggleSetup(){
+  const p=document.getElementById('setupPanel');
+  const open=p.classList.toggle('visible');
+  if(open){
+    document.getElementById('s_name').value=S.event.name;
+    document.getElementById('s_date').value=S.event.date;
+    document.getElementById('s_venue').value=S.event.venue;
+    document.getElementById('s_attendance').value=S.event.attendance;
+    document.getElementById('s_ic').value=S.event.ic;
+    document.getElementById('s_channel').value=S.event.channel;
+  }
+}
+function saveSetup(){
+  S.event.name=document.getElementById('s_name').value.trim();
+  S.event.date=document.getElementById('s_date').value;
+  S.event.venue=document.getElementById('s_venue').value.trim();
+  S.event.attendance=document.getElementById('s_attendance').value.trim();
+  S.event.ic=document.getElementById('s_ic').value.trim();
+  S.event.channel=document.getElementById('s_channel').value.trim();
+  document.getElementById('metaEventName').textContent=S.event.name||'— Not Set —';
+  document.getElementById('metaDate').textContent=S.event.date?new Date(S.event.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+  document.getElementById('metaVenue').textContent=S.event.venue||'—';
+  document.getElementById('metaAttendance').textContent=S.event.attendance||'—';
+  document.getElementById('metaIC').textContent=S.event.ic||'—';
+  document.getElementById('metaChannel').textContent=S.event.channel||'—';
+  toggleSetup();
+  addLog(`Event configured: <em>${S.event.name}</em> at <em>${S.event.venue}</em>`);
+  showToast('Event info saved');
+}
+
+// ══════════════════════════════════════════════════
+//  VIEW SWITCHING
+// ══════════════════════════════════════════════════
+function switchView(v){
+  S.currentView=v;
+  const views=['board','map','info','safety','resources'];
+  views.forEach(n=>{
+    const el=document.getElementById(n+'View');
+    if(el){el.classList.toggle('hidden',v!==n);el.style.display=(v===n&&n!=='board'&&n!=='map')?'flex':'';if(v===n&&n==='board')el.style.display='flex';}
+  });
+  document.getElementById('boardView').style.display=v==='board'?'flex':'none';
+  document.getElementById('mapView').style.display=v==='map'?'flex':'none';
+  ['tabBoard','tabMap','tabInfo','tabSafety','tabResources'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.toggle('active',id==='tab'+v.charAt(0).toUpperCase()+v.slice(1));
+  });
+  if(v==='map') setTimeout(()=>{ if(map) map.invalidateSize(); },50);
+  if(v==='resources') refreshResZoneSelect();
+}
+
+// ══════════════════════════════════════════════════
+//  TIMELINE
+// ══════════════════════════════════════════════════
+const TL_CATEGORY_COLORS = {
+  general:  {bg:'var(--teal-light)',   border:'var(--teal-med)',  text:'var(--blue-sec)', label:'General'},
+  traffic:  {bg:'#fff4e6',             border:'#f5d5a0',          text:'var(--amber)',    label:'Traffic / Road'},
+  race:     {bg:'#e8f5e9',             border:'#a8d5b0',          text:'var(--green)',    label:'Race / Sport'},
+  stage:    {bg:'#f3eaff',             border:'#c9a8f0',          text:'#6b3fa0',         label:'Stage / Performance'},
+  ops:      {bg:'#e8edf5',             border:'#a8b8d5',          text:'var(--navy)',     label:'Operations'},
+  medical:  {bg:'var(--red-bg)',       border:'#f0b0b0',          text:'var(--red)',      label:'Medical / Safety'},
+};
+const TL_STATUS = {upcoming:'⏳ Upcoming', active:'▶ Active', completed:'✓ Completed'};
+
+function addTimelineEntry(){
+  const time=document.getElementById('tlTime').value;
+  const label=document.getElementById('tlLabel').value.trim();
+  const category=document.getElementById('tlCategory').value;
+  const notes=document.getElementById('tlNotes').value.trim();
+  if(!time){showToast('Enter a time','warn');return;}
+  if(!label){showToast('Enter an activity description','warn');return;}
+  const entry={id:S.nextId++,time,label,category,notes,status:'upcoming'};
+  S.timeline.push(entry);
+  S.timeline.sort((a,b)=>a.time.localeCompare(b.time));
+  document.getElementById('tlTime').value='';
+  document.getElementById('tlLabel').value='';
+  document.getElementById('tlNotes').value='';
+  document.getElementById('tlCategory').value='general';
+  renderTimeline();
+  addLog(`Timeline: <em>${time} — ${label}</em>`);
+  showToast(`"${label}" added to timeline`);
+}
+
+function setTimelineStatus(id, status){
+  const entry=S.timeline.find(e=>e.id===id);
+  if(!entry) return;
+  entry.status=status;
+  renderTimeline();
+  addLog(`Timeline entry <em>${entry.label}</em> marked <em>${status}</em>`);
+}
+
+function removeTimelineEntry(id){
+  const entry=S.timeline.find(e=>e.id===id);
+  S.timeline=S.timeline.filter(e=>e.id!==id);
+  renderTimeline();
+  if(entry) addLog(`Timeline entry removed: <em>${entry.label}</em>`);
+}
+
+function renderTimeline(){
+  const container=document.getElementById('timelineList');
+  if(!S.timeline.length){
+    container.innerHTML='<div style="text-align:center;padding:30px;color:var(--gray);font-size:12px;font-style:italic;">No timeline entries yet. Add scheduled activities above.</div>';
+    return;
+  }
+  container.innerHTML=S.timeline.map((e,i)=>{
+    const cat=TL_CATEGORY_COLORS[e.category]||TL_CATEGORY_COLORS.general;
+    const isActive=e.status==='active';
+    const isDone=e.status==='completed';
+    return `<div style="display:flex;gap:0;margin-bottom:6px;opacity:${isDone?'0.6':'1'};">
+      <!-- Time column -->
+      <div style="width:80px;flex-shrink:0;padding:12px 12px 12px 0;text-align:right;">
+        <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:${isActive?'var(--teal-web)':isDone?'var(--gray)':'var(--navy)'};">${e.time}</div>
+      </div>
+      <!-- Spine -->
+      <div style="display:flex;flex-direction:column;align-items:center;width:24px;flex-shrink:0;">
+        <div style="width:12px;height:12px;border-radius:50%;margin-top:14px;flex-shrink:0;
+          background:${isActive?'var(--teal-web)':isDone?'var(--gray)':'var(--navy)'};
+          border:2px solid ${isActive?'var(--teal-light)':isDone?'var(--border)':'var(--teal-med)'};
+          box-shadow:${isActive?'0 0 0 3px rgba(14,150,188,0.2)':'none'};"></div>
+        ${i<S.timeline.length-1?`<div style="flex:1;width:2px;background:var(--border);margin-top:3px;"></div>`:''}
+      </div>
+      <!-- Card -->
+      <div style="flex:1;background:${cat.bg};border:1px solid ${cat.border};border-radius:7px;padding:10px 12px;margin-left:8px;margin-bottom:2px;">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap;">
+              <span style="font-size:13px;font-weight:700;color:var(--navy);${isDone?'text-decoration:line-through;':''}">${e.label}</span>
+              <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:${cat.border};color:${cat.text};">${cat.label}</span>
+            </div>
+            ${e.notes?`<div style="font-size:11px;color:var(--text-mid);margin-top:2px;">${e.notes}</div>`:''}
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+            <select onchange="setTimelineStatus(${e.id},this.value)"
+              style="font-size:10px;padding:3px 5px;border:1px solid ${cat.border};border-radius:4px;background:var(--white);font-family:var(--font-sans);color:var(--text);cursor:pointer;">
+              <option value="upcoming" ${e.status==='upcoming'?'selected':''}>⏳ Upcoming</option>
+              <option value="active"   ${e.status==='active'  ?'selected':''}>▶ Active</option>
+              <option value="completed"${e.status==='completed'?'selected':''}>✓ Completed</option>
+            </select>
+            <button class="icon-btn danger" onclick="removeTimelineEntry(${e.id})" title="Remove">×</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════
+//  ORGANIZER CONTACTS
+// ══════════════════════════════════════════════════
+function addContact(){
+  const name=document.getElementById('ctName').value.trim();
+  const title=document.getElementById('ctTitle').value.trim();
+  const phone=document.getElementById('ctPhone').value.trim();
+  const alt=document.getElementById('ctAlt').value.trim();
+  const email=document.getElementById('ctEmail').value.trim();
+  if(!name){showToast('Enter a contact name','warn');return;}
+  if(!phone&&!email){showToast('Enter at least a phone or email','warn');return;}
+  S.contacts.push({id:S.nextId++,name,title,phone,alt,email});
+  document.getElementById('ctName').value='';
+  document.getElementById('ctTitle').value='';
+  document.getElementById('ctPhone').value='';
+  document.getElementById('ctAlt').value='';
+  document.getElementById('ctEmail').value='';
+  renderContacts();
+  addLog(`Contact added: <em>${name}</em>${title?' ('+title+')':''}`);
+  showToast(`${name} added to contacts`);
+}
+
+function removeContact(id){
+  const c=S.contacts.find(x=>x.id===id);
+  S.contacts=S.contacts.filter(x=>x.id!==id);
+  renderContacts();
+  if(c) addLog(`Contact removed: <em>${c.name}</em>`);
+}
+
+function renderContacts(){
+  const container=document.getElementById('contactList');
+  if(!S.contacts.length){
+    container.innerHTML='<div style="text-align:center;padding:30px;color:var(--gray);font-size:12px;font-style:italic;">No contacts added yet. Add event organizers and key contacts above.</div>';
+    return;
+  }
+  container.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;">'+
+    S.contacts.map(c=>{
+      const ini=c.name.split(' ').map(s=>s[0]).join('').toUpperCase().slice(0,2);
+      return `<div style="background:var(--white);border:1px solid var(--border);border-radius:7px;padding:12px;position:relative;">
+        <button class="icon-btn danger" onclick="removeContact(${c.id})" title="Remove" style="position:absolute;top:8px;right:8px;">×</button>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--navy);color:var(--white);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--font-mono);">${ini}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:20px;">${c.name}</div>
+            ${c.title?`<div style="font-size:10px;color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.title}</div>`:''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          ${c.phone?`<div style="display:flex;align-items:center;gap:7px;">
+            <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--blue-sec);width:36px;flex-shrink:0;">Phone</span>
+            <a href="tel:${c.phone}" style="font-size:12px;font-family:var(--font-mono);color:var(--teal-web);text-decoration:none;font-weight:600;">${c.phone}</a>
+          </div>`:''}
+          ${c.alt?`<div style="display:flex;align-items:center;gap:7px;">
+            <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--blue-sec);width:36px;flex-shrink:0;">Alt</span>
+            <span style="font-size:12px;font-family:var(--font-mono);color:var(--text-mid);">${c.alt}</span>
+          </div>`:''}
+          ${c.email?`<div style="display:flex;align-items:center;gap:7px;">
+            <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--blue-sec);width:36px;flex-shrink:0;">Email</span>
+            <a href="mailto:${c.email}" style="font-size:11px;color:var(--teal-web);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.email}</a>
+          </div>`:''}
+        </div>
+      </div>`;
+    }).join('')+'</div>';
+}
+
+// ══════════════════════════════════════════════════
+//  SAFETY PLANS
+// ══════════════════════════════════════════════════
+const SCENARIO_TEMPLATES = [
+  {
+    type:'medical', icon:'🩺', title:'Medical Emergency',
+    color:{border:'#f0c0c0',bg:'#fdecea',header:'#a02020',badge:'#fdecea',badgeText:'#a02020'},
+    steps:[
+      'Notify dispatch — request EMS response to medical staging location.',
+      'Assign 2 officers to meet EMS at venue entry point and escort to patient.',
+      'Clear a path through crowd if necessary — use PA or radios to direct.',
+      'Designate one officer to document: patient info, time, nature of injury.',
+      'Notify IC/Supervisor immediately with patient status update.',
+      'If CPR/AED needed: nearest AED location is [fill in]. Any trained personnel on scene?',
+      'Do not allow media or bystanders to photograph/film patient area.'
+    ],
+    notify:'Dispatch · IC / Supervisor · EMS coordinator · Event medical director',
+    staging:'Medical staging: [fill in location]. Nearest hospital: [fill in] — [fill in] miles via [fill in route].',
+    sopRef:'Reference: CRPD Use of Force / Medical Aid policy. Contact EMS medical director if questions.'
+  },
+  {
+    type:'fight', icon:'🚷', title:'Fight / Disturbance',
+    color:{border:'#f5d5a0',bg:'#fff4e6',header:'#b85c00',badge:'#fff4e6',badgeText:'#b85c00'},
+    steps:[
+      'Respond with appropriate number of officers — avoid under-responding to crowd situations.',
+      'Establish a clear perimeter: push bystanders back at least 15 feet.',
+      'Identify and separate involved parties immediately — use distinct holding areas.',
+      'Scan for weapons before hands-on contact.',
+      'If crowd begins to form or becomes hostile, call for additional units immediately.',
+      'Document all involved parties, witnesses, and injuries before releasing.',
+      'Notify IC if fight involves weapons, serious injury, or crowd escalation.',
+      'Preserve any video evidence — ask bystanders to send to CopLogic or note their contact info.'
+    ],
+    notify:'IC / Supervisor · Dispatch · EMS if injuries present',
+    staging:'Holding area for separated parties: [fill in]. Staging for additional units: [fill in].',
+    sopRef:'Reference: CRPD Use of Force policy. Arrest decisions per supervisor direction.'
+  },
+  {
+    type:'activethreat', icon:'🔴', title:'Active Threat / Shooter',
+    color:{border:'#d08080',bg:'#fdf0f0',header:'#7a0000',badge:'#fdecea',badgeText:'#7a0000'},
+    steps:[
+      'IMMEDIATELY notify dispatch: location, number of suspects, weapons description, direction of travel.',
+      'Initiate ICS: IC assumes command, all units go to TAC channel.',
+      'Establish inner and outer perimeters — do not allow anyone in or out.',
+      'Implement evacuation of uninvolved civilians away from threat location.',
+      'First arriving officers: locate, contain, neutralize per ALERRT/active threat protocol.',
+      'Designate a Rescue Task Force staging point for EMS to treat casualties under cover.',
+      'Establish a Casualty Collection Point (CCP): [fill in location].',
+      'Establish a Unified Command Post: [fill in location].',
+      'Request mutual aid from Douglas County SO immediately.',
+      'NO information to media — direct all inquiries to PIO or command.'
+    ],
+    notify:'Dispatch (Priority) · All on-duty units · DC Sheriff mutual aid · EMS · Fire · Command staff · Chief',
+    staging:'CCP: [fill in]. Command Post: [fill in]. Staging for mutual aid: [fill in]. Evacuation assembly: [fill in].',
+    sopRef:'Reference: CRPD Active Threat Response policy · ALERRT protocol · Douglas County MCI plan. Notify DC Emergency Management.'
+  },
+  {
+    type:'evacuation', icon:'🚪', title:'Evacuation',
+    color:{border:'#a8b8d5',bg:'#e8edf5',header:'#012A4A',badge:'#e8edf5',badgeText:'#012A4A'},
+    steps:[
+      'IC authorizes evacuation — announce via PA system and radio.',
+      'Activate pre-planned evacuation routes: [fill in primary and alternate routes].',
+      'Assign officers to each designated exit — see post assignments on board.',
+      'Direct crowd to assembly area: [fill in location].',
+      'Officers conduct sweep of venue for stragglers — do not leave until cleared.',
+      'Account for ADA/mobility-limited attendees — designate assist officers.',
+      'Secure venue perimeter once evacuated — no re-entry until all-clear.',
+      'Coordinate with event organizer for PA announcements.',
+      'Log head count at assembly area and report to IC.'
+    ],
+    notify:'IC · Dispatch · Event organizer · Venue management · EMS standby',
+    staging:'Primary assembly area: [fill in]. Alternate assembly: [fill in]. ADA assist staging: [fill in].',
+    sopRef:'Reference: Castle Rock Emergency Operations Plan · CRPD ERG · Venue evacuation diagram on file.'
+  },
+  {
+    type:'weather', icon:'⛈', title:'Severe Weather',
+    color:{border:'#a8c8e0',bg:'#e8f4fb',header:'#024270',badge:'#e8f4fb',badgeText:'#024270'},
+    steps:[
+      'Monitor National Weather Service alerts — designate one officer as weather monitor.',
+      'IC makes call to suspend/cancel based on NWS alert level and lightning proximity.',
+      'Announce shelter-in-place via PA: direct attendees to designated shelter locations.',
+      'Shelter locations: [fill in — solid structures only, not tents or open pavilions].',
+      'Officers move to covered positions — maintain radio contact.',
+      'Lightning rule: suspend outdoor activity when lightning is within 8 miles.',
+      'Do not resume event until 30 minutes after last lightning strike in area.',
+      'If tornado warning: move to interior rooms, lowest floor, away from windows.',
+      'Document decision timeline for after-action report.'
+    ],
+    notify:'IC · Dispatch · Event organizer · Venue management',
+    staging:'Shelter locations: [fill in]. Officer shelter: [fill in]. Monitor: weather.gov or NWS app.',
+    sopRef:'Reference: Castle Rock EOP — Natural Hazards. CRPD ERG — Severe Weather chapter.'
+  },
+  {
+    type:'missing', icon:'🔍', title:'Missing Person / Child',
+    color:{border:'#c9a8f0',bg:'#f3eaff',header:'#6b3fa0',badge:'#f3eaff',badgeText:'#6b3fa0'},
+    steps:[
+      'Get full description immediately: name, age, clothing, last known location, time last seen.',
+      'Notify dispatch — initiate missing person log.',
+      'If child under 12 or vulnerable adult: initiate venue lockdown of exits immediately.',
+      'Assign officers to all exits — no one matching description exits without check.',
+      'Broadcast description on radio to all event units.',
+      'Request event organizer make PA announcement with description (omit child\'s name for safety).',
+      'Designate a family reunification point: [fill in location].',
+      'Check common areas: restrooms, food vendors, first aid station, lost-and-found.',
+      'If not located within 30 minutes: notify supervisor, consider Code Adam or AMBER criteria.',
+      'Document all search activity and times for report.'
+    ],
+    notify:'IC · Dispatch · All event units · Event organizer for PA',
+    staging:'Family reunification point: [fill in]. Command coordination: IC post.',
+    sopRef:'Reference: CRPD Missing Persons policy. AMBER Alert criteria per CO statute if applicable.'
+  },
+  {
+    type:'vehicle', icon:'🚗', title:'Vehicle Incursion / Threat',
+    color:{border:'#f0a8a8',bg:'#fdf5f5',header:'#800000',badge:'#fdf5f5',badgeText:'#800000'},
+    steps:[
+      'If vehicle actively threatening crowd: broadcast immediately — all units respond.',
+      'Attempt to stop vehicle using available resources — do not place officers in direct path.',
+      'Establish hard perimeter at all vehicle access points — no additional vehicle entry.',
+      'Direct crowd away from roadway and vehicle threat area.',
+      'Request EMS for any injured parties.',
+      'If vehicle stopped: treat as armed/dangerous until cleared — maintain distance.',
+      'Preserve scene: do not move vehicle — document position, damage, victim locations.',
+      'Notify IC, dispatch, and command staff immediately.',
+      'Coordinate with event organizer to cancel/suspend vehicle traffic in event area.',
+      'No media access to scene — establish media staging at [fill in].'
+    ],
+    notify:'IC · Dispatch · All units · EMS · DC Sheriff mutual aid · Command staff',
+    staging:'Hard closure points: per road closure plan (Map View). EMS staging: [fill in]. Media staging: [fill in].',
+    sopRef:'Reference: CRPD Vehicle Pursuit / Use of Force policy. Coordinate barricade placement with Public Works if time permits.'
+  }
+];
+
+function initSafetyPlans(){
+  // Pre-load all templates into state on first run
+  SCENARIO_TEMPLATES.forEach(t=>{
+    S.scenarios.push({
+      id: S.nextId++,
+      type: t.type,
+      icon: t.icon,
+      title: t.title,
+      color: t.color,
+      steps: [...t.steps],
+      notify: t.notify,
+      staging: t.staging,
+      sopRef: t.sopRef,
+      expanded: false,
+      isCustom: false
+    });
+  });
+  renderSafetyPlans();
+}
+
+function addCustomScenario(){
+  const title = prompt('Scenario title (e.g. "Bomb Threat", "Civil Disturbance"):','');
+  if(!title||!title.trim()) return;
+  S.scenarios.push({
+    id: S.nextId++,
+    type: 'custom',
+    icon: '⚠️',
+    title: title.trim(),
+    color: {border:'var(--border)',bg:'var(--white)',header:'var(--navy)',badge:'var(--bg)',badgeText:'var(--text-mid)'},
+    steps: ['[Add immediate action step 1]','[Add immediate action step 2]','[Add immediate action step 3]'],
+    notify: '[Fill in who to notify]',
+    staging: '[Fill in staging and location details]',
+    sopRef: '[Reference applicable CRPD policy or ERG chapter]',
+    expanded: true,
+    isCustom: true
+  });
+  renderSafetyPlans();
+  addLog(`Safety plan added: custom scenario <em>${title}</em>`);
+  showToast(`"${title}" scenario added`);
+}
+
+function toggleScenario(id){
+  const sc=S.scenarios.find(s=>s.id===id);
+  if(sc) sc.expanded=!sc.expanded;
+  renderSafetyPlans();
+}
+
+function removeScenario(id){
+  const sc=S.scenarios.find(s=>s.id===id);
+  if(!sc) return;
+  if(!confirm(`Remove the "${sc.title}" safety plan card?`)) return;
+  S.scenarios=S.scenarios.filter(s=>s.id!==id);
+  renderSafetyPlans();
+  addLog(`Safety plan removed: <em>${sc.title}</em>`);
+}
+
+function updateScenarioField(id, field, value){
+  const sc=S.scenarios.find(s=>s.id===id);
+  if(sc) sc[field]=value;
+}
+
+function updateScenarioStep(id, stepIdx, value){
+  const sc=S.scenarios.find(s=>s.id===id);
+  if(sc) sc.steps[stepIdx]=value;
+}
+
+function addScenarioStep(id){
+  const sc=S.scenarios.find(s=>s.id===id);
+  if(!sc) return;
+  sc.steps.push('[New step]');
+  renderSafetyPlans();
+}
+
+function removeScenarioStep(id, stepIdx){
+  const sc=S.scenarios.find(s=>s.id===id);
+  if(!sc||sc.steps.length<=1) return;
+  sc.steps.splice(stepIdx,1);
+  renderSafetyPlans();
+}
+
+function renderSafetyPlans(){
+  const grid=document.getElementById('safetyGrid');
+  if(!S.scenarios.length){
+    grid.innerHTML='<div style="text-align:center;padding:40px;color:var(--gray);font-size:12px;font-style:italic;grid-column:1/-1;">No safety plans loaded.</div>';
+    return;
+  }
+  grid.innerHTML=S.scenarios.map(sc=>{
+    const c=sc.color;
+    const isOpen=sc.expanded;
+    return `<div style="background:${c.bg};border:1px solid ${c.border};border-radius:8px;overflow:hidden;box-shadow:var(--shadow);">
+      <!-- Card Header -->
+      <div style="background:${c.header};padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="toggleScenario(${sc.id})">
+        <span style="font-size:18px;line-height:1;">${sc.icon}</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:#fff;line-height:1.2;">${sc.title}</div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.6);margin-top:2px;text-transform:uppercase;letter-spacing:1px;">
+            ${isOpen ? 'Click to collapse' : 'Click to expand — pre-populate before the event'}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          ${sc.isCustom?`<button class="icon-btn" onclick="event.stopPropagation();removeScenario(${sc.id})" title="Remove scenario" style="background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);">×</button>`:''}
+          <span style="color:rgba(255,255,255,0.7);font-size:12px;transition:transform 0.2s;display:inline-block;transform:rotate(${isOpen?'90':'0'}deg);">▶</span>
+        </div>
+      </div>
+
+      ${isOpen ? `
+      <!-- Card Body -->
+      <div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
+
+        <!-- Immediate Actions -->
+        <div>
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${c.header};margin-bottom:8px;">Immediate Actions</div>
+          <div style="display:flex;flex-direction:column;gap:5px;" id="steps_${sc.id}">
+            ${sc.steps.map((step,i)=>`
+              <div style="display:flex;align-items:flex-start;gap:7px;">
+                <div style="width:20px;height:20px;border-radius:50%;background:${c.header};color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px;">${i+1}</div>
+                <textarea rows="2" style="flex:1;padding:5px 7px;border:1px solid ${c.border};border-radius:4px;font-family:var(--font-sans);font-size:11px;color:var(--text);background:var(--white);resize:vertical;line-height:1.4;"
+                  onchange="updateScenarioStep(${sc.id},${i},this.value)">${step}</textarea>
+                <button class="icon-btn danger" onclick="removeScenarioStep(${sc.id},${i})" title="Remove step" style="margin-top:3px;">×</button>
+              </div>`).join('')}
+          </div>
+          <button onclick="addScenarioStep(${sc.id})" style="margin-top:7px;font-size:10px;font-weight:700;color:${c.header};background:none;border:1px dashed ${c.border};border-radius:4px;padding:4px 10px;cursor:pointer;width:100%;font-family:var(--font-sans);">+ Add Step</button>
+        </div>
+
+        <!-- Notify -->
+        <div>
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${c.header};margin-bottom:5px;">Notify</div>
+          <textarea rows="2" style="width:100%;padding:6px 8px;border:1px solid ${c.border};border-radius:4px;font-family:var(--font-sans);font-size:11px;color:var(--text);background:var(--white);resize:vertical;line-height:1.5;"
+            onchange="updateScenarioField(${sc.id},'notify',this.value)">${sc.notify}</textarea>
+        </div>
+
+        <!-- Staging & Locations -->
+        <div>
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${c.header};margin-bottom:5px;">Staging &amp; Locations</div>
+          <textarea rows="2" style="width:100%;padding:6px 8px;border:1px solid ${c.border};border-radius:4px;font-family:var(--font-sans);font-size:11px;color:var(--text);background:var(--white);resize:vertical;line-height:1.5;"
+            onchange="updateScenarioField(${sc.id},'staging',this.value)">${sc.staging}</textarea>
+        </div>
+
+        <!-- SOP Reference -->
+        <div style="background:rgba(0,0,0,0.04);border-radius:5px;padding:8px 10px;">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${c.header};margin-bottom:4px;">SOP / Policy Reference</div>
+          <textarea rows="2" style="width:100%;padding:5px 7px;border:1px solid ${c.border};border-radius:4px;font-family:var(--font-sans);font-size:10px;color:var(--text-mid);background:var(--white);resize:vertical;line-height:1.5;"
+            onchange="updateScenarioField(${sc.id},'sopRef',this.value)">${sc.sopRef}</textarea>
+        </div>
+
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════
+//  MAP INITIALIZATION
+// ══════════════════════════════════════════════════
+function initMap(){
+  // Castle Rock, CO downtown center
+  map = L.map('map',{center:[39.3722,-104.8561],zoom:15,zoomControl:true});
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    subdomains:'abc',
+    maxZoom:19
+  }).addTo(map);
+
+  // Layers
+  mapMarkerLayer  = L.layerGroup().addTo(map);
+  closureLayer    = L.layerGroup().addTo(map);
+  evacLayer       = L.layerGroup().addTo(map);
+  assemblyLayer   = L.layerGroup().addTo(map);
+  routeLayer      = L.layerGroup().addTo(map);
+  routeMarkerLayer= L.layerGroup().addTo(map);
+  annotationLayer = L.layerGroup().addTo(map);
+
+  // Map click handler (managed by tool mode)
+  map.on('click', onMapClick);
+  map.on('dblclick', onMapDblClick);
+}
+
+// ══════════════════════════════════════════════════
+//  TOOLS
+// ══════════════════════════════════════════════════
+const TOOL_HINTS = {
+  pan: '',
+  placePost: '📍 Click anywhere on the map to place the selected post. Click its marker to move it.',
+  closure: '🚧 Click to add points along the road closure. Double-click to finish and name it.',
+  evac: '🟢 Click to draw an evacuation route point by point. Double-click to finish and name it.',
+  route: '🗺 Click to draw the event route point by point. Double-click to finish and name it.',
+  routeMarker: '🏁 Click anywhere on the map to place the selected route marker.',
+  assembly: '⭐ Click anywhere on the map to place an assembly point. You will be prompted for a name.',
+  annotation: '🏷 Click anywhere on the map to place a text label.',
+  erase: '🗑 Click any marker, line, or label on the map to remove it.'
+};
+
+function setTool(tool){
+  S.currentTool = tool;
+  ['toolPan','toolClosure','toolEvac','toolRoute','toolRouteMarker','toolAssembly','toolAnnotation','toolErase'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.remove('active');
+  });
+  const toolMap={pan:'toolPan',closure:'toolClosure',evac:'toolEvac',route:'toolRoute',routeMarker:'toolRouteMarker',assembly:'toolAssembly',annotation:'toolAnnotation',erase:'toolErase'};
+  if(toolMap[tool]) document.getElementById(toolMap[tool]).classList.add('active');
+
+  const cursors={pan:'',placePost:'crosshair',closure:'crosshair',evac:'crosshair',route:'crosshair',routeMarker:'crosshair',assembly:'crosshair',annotation:'crosshair',erase:'cell'};
+  document.getElementById('map').style.cursor=cursors[tool]||'';
+
+  const hint=document.getElementById('mapHint');
+  const hintText=TOOL_HINTS[tool]||'';
+  hint.textContent=hintText;
+  hint.classList.toggle('visible',!!hintText);
+
+  // Cancel any in-progress drawings when switching away
+  if(tool!=='closure' && S.closureInProgress.length>0) cancelClosure();
+  if(tool!=='evac' && S.evacInProgress.length>0) cancelEvacRoute();
+  if(tool!=='route' && S.routeInProgress.length>0) cancelRoute();
+
+  if(tool==='placePost'){
+    const sel=document.getElementById('postForPlacement');
+    S.selectedPostForPlacement=sel.value?parseInt(sel.value):null;
+    if(!S.selectedPostForPlacement){setTool('pan');showToast('Select a post first','warn');}
+  } else {
+    S.selectedPostForPlacement=null;
+  }
+
+  if(tool==='pan') map.dragging.enable();
+}
+
+function onMapClick(e){
+  const {lat,lng}=e.latlng;
+  switch(S.currentTool){
+    case 'placePost':   placePostAt(lat,lng); break;
+    case 'closure':     addClosurePoint(lat,lng); break;
+    case 'evac':        addEvacPoint(lat,lng); break;
+    case 'route':       addRoutePoint(lat,lng); break;
+    case 'routeMarker': placeRouteMarker(lat,lng); break;
+    case 'assembly':    promptAssemblyPoint(lat,lng); break;
+    case 'annotation':  promptAnnotation(lat,lng); break;
+    case 'erase':       break;
+  }
+}
+function onMapDblClick(e){
+  if(S.currentTool==='closure'){
+    e.originalEvent.preventDefault();
+    finishClosure(e.latlng.lat,e.latlng.lng);
+  }
+  if(S.currentTool==='evac'){
+    e.originalEvent.preventDefault();
+    finishEvacRoute(e.latlng.lat,e.latlng.lng);
+  }
+  if(S.currentTool==='route'){
+    e.originalEvent.preventDefault();
+    finishRoute(e.latlng.lat,e.latlng.lng);
+  }
+}
+
+// ── Place Post ──
+function placePostAt(lat,lng){
+  if(!S.selectedPostForPlacement) return;
+  const post=S.posts.find(p=>p.id===S.selectedPostForPlacement);
+  if(!post){setTool('pan');return;}
+  post.lat=lat; post.lng=lng;
+  updatePostMarker(post);
+  refreshPostPlacementSelect();
+  addLog(`Post <em>${post.name}</em> placed on map`);
+  showToast(`${post.name} placed on map`);
+  // Stay in place mode so user can place next point without re-selecting
+}
+
+// ── Road Closure Drawing ──
+function addClosurePoint(lat,lng){
+  S.closureInProgress.push([lat,lng]);
+  if(livePolyline) closureLayer.removeLayer(livePolyline);
+  if(S.closureInProgress.length>=2){
+    livePolyline=L.polyline(S.closureInProgress,{color:'#cc2020',weight:4,dashArray:'8 5',opacity:.7}).addTo(closureLayer);
+  }
+}
+function finishClosure(lat,lng){
+  if(S.closureInProgress.length<1){cancelClosure();return;}
+  S.closureInProgress.push([lat,lng]);
+  const name=prompt('Name this road closure (e.g. "Wilcox St – Cantril to Perry"):','Road Closure');
+  if(!name){cancelClosure();return;}
+  const type=prompt('Type: closure / detour (default: closure)','closure')||'closure';
+  const cl={id:S.nextId++,name:name.trim(),type:type.trim(),latlngs:[...S.closureInProgress]};
+  S.closures.push(cl);
+  if(livePolyline){closureLayer.removeLayer(livePolyline);livePolyline=null;}
+  drawClosure(cl);
+  S.closureInProgress=[];
+  setTool('pan');
+  addLog(`Road ${cl.type} added: <em>${cl.name}</em>`);
+  showToast(`"${cl.name}" added`);
+}
+function cancelClosure(){
+  S.closureInProgress=[];
+  if(livePolyline){closureLayer.removeLayer(livePolyline);livePolyline=null;}
+}
+function drawClosure(cl){
+  const color=cl.type==='detour'?'#e69500':'#cc2020';
+  const line=L.polyline(cl.latlngs,{color,weight:5,dashArray:cl.type==='detour'?'12 6':'8 4',opacity:.85}).addTo(closureLayer);
+  const label=L.tooltip({permanent:true,direction:'top',className:'closure-label'}).setContent(`<strong style="font-size:10px;color:#fff;">${cl.name}</strong>`);
+  line.bindTooltip(label);
+  line.on('click',(ev)=>{
+    if(S.currentTool==='erase'){L.DomEvent.stopPropagation(ev);eraseFeature('closure',cl.id);}
+  });
+  closurePolylines[cl.id]=line;
+}
+
+// ── Evacuation Route Drawing ──
+const EVAC_COLORS = { primary:'#1a7a4a', secondary:'#0E96BC' };
+
+function addEvacPoint(lat,lng){
+  S.evacInProgress.push([lat,lng]);
+  if(livePolyline) evacLayer.removeLayer(livePolyline);
+  if(S.evacInProgress.length>=2){
+    const routeType=document.getElementById('evacRouteType').value;
+    const color=EVAC_COLORS[routeType]||EVAC_COLORS.primary;
+    livePolyline=L.polyline(S.evacInProgress,{color,weight:5,opacity:.6,dashArray:'10 6'}).addTo(evacLayer);
+  }
+}
+function finishEvacRoute(lat,lng){
+  if(S.evacInProgress.length<1){cancelEvacRoute();return;}
+  S.evacInProgress.push([lat,lng]);
+  const routeType=document.getElementById('evacRouteType').value;
+  const defaultName=routeType==='primary'?'Primary Evacuation Route':'Secondary Evacuation Route';
+  const name=prompt(`Name this ${routeType} evacuation route:`,defaultName);
+  if(!name){cancelEvacRoute();return;}
+  const route={id:S.nextId++,name:name.trim(),routeType,latlngs:[...S.evacInProgress]};
+  S.evacRoutes.push(route);
+  if(livePolyline){evacLayer.removeLayer(livePolyline);livePolyline=null;}
+  drawEvacRoute(route);
+  S.evacInProgress=[];
+  setTool('pan');
+  addLog(`Evac route added: <em>${route.name}</em> (${routeType})`);
+  showToast(`"${route.name}" added`);
+}
+function cancelEvacRoute(){
+  S.evacInProgress=[];
+  if(livePolyline){evacLayer.removeLayer(livePolyline);livePolyline=null;}
+}
+function drawEvacRoute(route){
+  const color=EVAC_COLORS[route.routeType]||EVAC_COLORS.primary;
+  // Solid bold line with directional arrows via decorator pattern using plain Leaflet
+  const line=L.polyline(route.latlngs,{color,weight:6,opacity:.9}).addTo(evacLayer);
+
+  // Arrow heads at intervals along the route using divIcon markers
+  const pts=route.latlngs;
+  for(let i=0;i<pts.length-1;i++){
+    const mid=[(pts[i][0]+pts[i+1][0])/2,(pts[i][1]+pts[i+1][1])/2];
+    const angle=Math.atan2(pts[i+1][1]-pts[i][1],pts[i+1][0]-pts[i][0])*(180/Math.PI);
+    const arrowIcon=L.divIcon({
+      html:`<div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:12px solid ${color};transform:rotate(${angle-90}deg);opacity:0.9;"></div>`,
+      className:'',iconAnchor:[7,6]
+    });
+    const arrow=L.marker(mid,{icon:arrowIcon,interactive:false}).addTo(evacLayer);
+    // Store arrow with line so we can remove both on erase
+    if(!line._arrows) line._arrows=[];
+    line._arrows.push(arrow);
+  }
+
+  const label=L.tooltip({permanent:true,direction:'top'}).setContent(
+    `<span style="font-size:10px;font-weight:700;color:${color};">${route.routeType==='primary'?'⬆':'⤴'} ${route.name}</span>`
+  );
+  line.bindTooltip(label);
+  line.on('click',(ev)=>{
+    if(S.currentTool==='erase'){L.DomEvent.stopPropagation(ev);eraseFeature('evacRoute',route.id);}
+  });
+  evacPolylines[route.id]=line;
+}
+
+// ── Assembly Point ──
+function promptAssemblyPoint(lat,lng){
+  const name=prompt('Name this assembly point:','Assembly Point');
+  if(!name||!name.trim()) return;
+  const ap={id:S.nextId++,name:name.trim(),lat,lng};
+  S.assemblyPoints.push(ap);
+  drawAssemblyPoint(ap);
+  addLog(`Assembly point added: <em>${ap.name}</em>`);
+  showToast(`"${ap.name}" placed`);
+}
+function drawAssemblyPoint(ap){
+  const icon=L.divIcon({
+    html:`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div style="background:#1a7a4a;border:2px solid #fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.3);">⭐</div>
+      <div style="background:rgba(26,122,74,.92);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.3);">${ap.name}</div>
+    </div>`,
+    className:'',iconAnchor:[14,30]
+  });
+  const marker=L.marker([ap.lat,ap.lng],{icon,draggable:true}).addTo(assemblyLayer);
+  marker.bindPopup(`<div class="popup-title">⭐ ${ap.name}</div><div style="font-size:10px;color:var(--teal-med);margin-top:4px;">Assembly / Evacuation Staging Point</div>`,{maxWidth:200});
+  marker.on('dragend',e=>{ap.lat=e.target.getLatLng().lat;ap.lng=e.target.getLatLng().lng;});
+  marker.on('click',()=>{if(S.currentTool==='erase') eraseFeature('assemblyPoint',ap.id);});
+  assemblyMarkers[ap.id]=marker;
+}
+
+// ── Annotation ──
+function promptAnnotation(lat,lng){
+  const text=prompt('Enter label text:','');
+  if(!text||!text.trim()) return;
+  const ann={id:S.nextId++,text:text.trim(),lat,lng};
+  S.annotations.push(ann);
+  drawAnnotation(ann);
+  addLog(`Label added: <em>${ann.text}</em>`);
+  showToast(`Label "${ann.text}" added`);
+}
+function drawAnnotation(ann){
+  const icon=L.divIcon({
+    html:`<div style="background:rgba(14,150,188,.9);color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;font-family:var(--font-sans);font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);">${ann.text}</div>`,
+    className:'',iconAnchor:[0,0]
+  });
+  const marker=L.marker([ann.lat,ann.lng],{icon,draggable:true}).addTo(annotationLayer);
+  marker.on('dragend',e=>{
+    ann.lat=e.target.getLatLng().lat;
+    ann.lng=e.target.getLatLng().lng;
+  });
+  marker.on('click',()=>{
+    if(S.currentTool==='erase') eraseFeature('annotation',ann.id);
+  });
+  annotationMarkers[ann.id]=marker;
+}
+
+// ── Event Routes ──
+const ROUTE_STYLES = {
+  parade:     {color:'#8B008B', label:'Parade Path',            dashArray:null,     arrows:true},
+  race:       {color:'#E57300', label:'Race / Run Course',      dashArray:null,     arrows:true},
+  procession: {color:'#1a3a7a', label:'Procession Route',       dashArray:null,     arrows:false},
+  bike:       {color:'#2E7D32', label:'Bike Route',             dashArray:'10 6',   arrows:false},
+  staging:    {color:'#795548', label:'Vehicle Staging / Turn', dashArray:'6 6',    arrows:false},
+  other:      {color:'#5B8DB8', label:'Other Route',            dashArray:null,     arrows:false}
+};
+function addRoutePoint(lat,lng){
+  S.routeInProgress.push([lat,lng]);
+  if(livePolyline) routeLayer.removeLayer(livePolyline);
+  if(S.routeInProgress.length>=2){
+    const rt=document.getElementById('eventRouteType').value||'parade';
+    const style=ROUTE_STYLES[rt];
+    livePolyline=L.polyline(S.routeInProgress,{color:style.color,weight:5,dashArray:style.dashArray,opacity:.65}).addTo(routeLayer);
+  }
+}
+function finishRoute(lat,lng){
+  if(S.routeInProgress.length<1){cancelRoute();return;}
+  S.routeInProgress.push([lat,lng]);
+  const rt=document.getElementById('eventRouteType').value||'parade';
+  const style=ROUTE_STYLES[rt];
+  const name=prompt(`Name this ${style.label}:`,style.label);
+  if(!name){cancelRoute();return;}
+  const route={id:S.nextId++,name:name.trim(),routeType:rt,latlngs:[...S.routeInProgress]};
+  S.routes.push(route);
+  if(livePolyline){routeLayer.removeLayer(livePolyline);livePolyline=null;}
+  S.routeInProgress=[];
+  drawRoute(route);
+  addLog(`Event route drawn: <em>${route.name}</em> (${style.label})`);
+  showToast(`"${route.name}" added`);
+}
+function cancelRoute(){
+  if(livePolyline){routeLayer.removeLayer(livePolyline);livePolyline=null;}
+  S.routeInProgress=[];
+}
+function drawRoute(route){
+  const style=ROUTE_STYLES[route.routeType]||ROUTE_STYLES.other;
+  const poly=L.polyline(route.latlngs,{color:style.color,weight:5,dashArray:style.dashArray,opacity:.9}).addTo(routeLayer);
+  poly.bindTooltip(`<strong>${route.name}</strong><br><span style="font-size:10px;">${style.label}</span>`,{sticky:true});
+  poly.on('click',()=>{if(S.currentTool==='erase') eraseFeature('route',route.id);});
+  const arrows=[];
+  if(style.arrows&&route.latlngs.length>=2){
+    // Place directional arrows every ~3 segments
+    const step=Math.max(1,Math.floor(route.latlngs.length/4));
+    for(let i=step;i<route.latlngs.length-1;i+=step){
+      const p1=route.latlngs[i-1], p2=route.latlngs[i];
+      const angle=Math.atan2(p2[1]-p1[1],p2[0]-p1[0])*(180/Math.PI);
+      const arrowIcon=L.divIcon({html:`<div style="color:${style.color};font-size:18px;transform:rotate(${angle}deg);line-height:1;text-shadow:0 0 3px rgba(255,255,255,.8);">➤</div>`,className:'',iconSize:[20,20],iconAnchor:[10,10]});
+      const arrowMarker=L.marker(p2,{icon:arrowIcon,interactive:false}).addTo(routeLayer);
+      arrows.push(arrowMarker);
+    }
+  }
+  poly._arrows=arrows;
+  routePolylines[route.id]=poly;
+}
+
+// ── Route Markers (Start / Finish / Checkpoint) ──
+const ROUTE_MARKER_CONFIG = {
+  start:      {emoji:'🚩', bg:'#1a7a4a', label:'START'},
+  finish:     {emoji:'🏁', bg:'#a02020', label:'FINISH'},
+  checkpoint: {emoji:'🔵', bg:'#0E96BC', label:''}
+};
+let checkpointCounter = 1;
+function placeRouteMarker(lat,lng){
+  const type=document.getElementById('routeMarkerType').value||'start';
+  let name;
+  if(type==='checkpoint'){
+    name=prompt(`Checkpoint name/number:`,`Checkpoint ${checkpointCounter}`);
+    if(!name) return;
+    checkpointCounter++;
+  } else {
+    name=prompt(`${type==='start'?'Start':'Finish'} point name:`,type==='start'?'Start':'Finish');
+    if(!name) return;
+  }
+  const rm={id:S.nextId++,name:name.trim(),markerType:type,lat,lng};
+  S.routeMarkers.push(rm);
+  drawRouteMarker(rm);
+  addLog(`Route marker placed: <em>${rm.name}</em> (${type})`);
+  showToast(`"${rm.name}" placed`);
+}
+function drawRouteMarker(rm){
+  const cfg=ROUTE_MARKER_CONFIG[rm.markerType]||ROUTE_MARKER_CONFIG.checkpoint;
+  const icon=L.divIcon({
+    html:`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div style="background:${cfg.bg};border:2.5px solid #fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,.35);">${cfg.emoji}</div>
+      <div style="background:${cfg.bg};color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.3);">${rm.name}</div>
+    </div>`,
+    className:'',iconAnchor:[15,34]
+  });
+  const marker=L.marker([rm.lat,rm.lng],{icon,draggable:true}).addTo(routeMarkerLayer);
+  marker.bindPopup(`<div class="popup-title">${cfg.emoji} ${rm.name}</div><div class="popup-sub">${rm.markerType.charAt(0).toUpperCase()+rm.markerType.slice(1)} marker</div>`,{maxWidth:180});
+  marker.on('dragend',e=>{rm.lat=e.target.getLatLng().lat;rm.lng=e.target.getLatLng().lng;});
+  marker.on('click',()=>{if(S.currentTool==='erase') eraseFeature('routeMarker',rm.id);});
+  routeMarkerObjects[rm.id]=marker;
+}
+
+// ── Erase Feature ──
+function eraseFeature(type,id){
+  if(type==='closure'){
+    S.closures=S.closures.filter(c=>c.id!==id);
+    if(closurePolylines[id]){closureLayer.removeLayer(closurePolylines[id]);delete closurePolylines[id];}
+    addLog(`Road closure removed`);
+    showToast('Closure removed');
+  } else if(type==='annotation'){
+    S.annotations=S.annotations.filter(a=>a.id!==id);
+    if(annotationMarkers[id]){annotationLayer.removeLayer(annotationMarkers[id]);delete annotationMarkers[id];}
+    addLog(`Label removed`);
+    showToast('Label removed');
+  } else if(type==='evacRoute'){
+    S.evacRoutes=S.evacRoutes.filter(r=>r.id!==id);
+    if(evacPolylines[id]){
+      if(evacPolylines[id]._arrows) evacPolylines[id]._arrows.forEach(a=>evacLayer.removeLayer(a));
+      evacLayer.removeLayer(evacPolylines[id]);
+      delete evacPolylines[id];
+    }
+    addLog(`Evacuation route removed`);
+    showToast('Evac route removed');
+  } else if(type==='route'){
+    const r=S.routes.find(x=>x.id===id);
+    S.routes=S.routes.filter(x=>x.id!==id);
+    if(routePolylines[id]){
+      if(routePolylines[id]._arrows) routePolylines[id]._arrows.forEach(a=>routeLayer.removeLayer(a));
+      routeLayer.removeLayer(routePolylines[id]);
+      delete routePolylines[id];
+    }
+    if(r) addLog(`Event route removed: <em>${r.name}</em>`);
+    showToast('Route removed');
+  } else if(type==='routeMarker'){
+    const rm=S.routeMarkers.find(x=>x.id===id);
+    S.routeMarkers=S.routeMarkers.filter(x=>x.id!==id);
+    if(routeMarkerObjects[id]){routeMarkerLayer.removeLayer(routeMarkerObjects[id]);delete routeMarkerObjects[id];}
+    if(rm) addLog(`Route marker removed: <em>${rm.name}</em>`);
+    showToast('Marker removed');
+  } else if(type==='assemblyPoint'){
+    S.assemblyPoints=S.assemblyPoints.filter(a=>a.id!==id);
+    if(assemblyMarkers[id]){assemblyLayer.removeLayer(assemblyMarkers[id]);delete assemblyMarkers[id];}
+    addLog(`Assembly point removed`);
+    showToast('Assembly point removed');
+  } else if(type==='post'){
+    const post=S.posts.find(p=>p.id===id);
+    if(post){delete post.lat;delete post.lng;}
+    if(postMarkers[id]){mapMarkerLayer.removeLayer(postMarkers[id]);delete postMarkers[id];}
+    refreshPostPlacementSelect();
+    addLog(`Post <em>${post?post.name:id}</em> removed from map`);
+    showToast('Post removed from map');
+  }
+}
+function clearAllMapFeatures(){
+  if(!confirm('Clear all map features? This cannot be undone.')) return;
+  S.posts.forEach(p=>{delete p.lat;delete p.lng;});
+  S.closures=[]; S.annotations=[]; S.evacRoutes=[]; S.assemblyPoints=[];
+  S.routes=[]; S.routeMarkers=[];
+  mapMarkerLayer.clearLayers(); closureLayer.clearLayers();
+  evacLayer.clearLayers(); assemblyLayer.clearLayers(); annotationLayer.clearLayers();
+  routeLayer.clearLayers(); routeMarkerLayer.clearLayers();
+  Object.keys(postMarkers).forEach(k=>delete postMarkers[k]);
+  Object.keys(closurePolylines).forEach(k=>delete closurePolylines[k]);
+  Object.keys(annotationMarkers).forEach(k=>delete annotationMarkers[k]);
+  Object.keys(evacPolylines).forEach(k=>delete evacPolylines[k]);
+  Object.keys(assemblyMarkers).forEach(k=>delete assemblyMarkers[k]);
+  Object.keys(routePolylines).forEach(k=>delete routePolylines[k]);
+  Object.keys(routeMarkerObjects).forEach(k=>delete routeMarkerObjects[k]);
+  checkpointCounter=1;
+  refreshPostPlacementSelect();
+  addLog('All map features cleared');
+  showToast('Map cleared');
+}
+
+// ── Post Markers ──
+const STATUS_COLORS={staffed:'#1a7a4a',partial:'#0E96BC',unstaffed:'#a02020',issue:'#b85c00',standby:'#5B8DB8'};
+
+function updatePostMarker(post){
+  if(postMarkers[post.id]){mapMarkerLayer.removeLayer(postMarkers[post.id]);delete postMarkers[post.id];}
+  if(post.lat==null||post.lng==null) return;
+  const color=STATUS_COLORS[post.status]||'#a02020';
+  const assignedOfficers=post.slots.map(id=>id?S.officers.find(o=>o.id===id):null).filter(Boolean);
+  const officerRows=assignedOfficers.length>0
+    ?assignedOfficers.map(o=>`<div class="popup-row"><span class="popup-label">Officer</span><span class="popup-val">${o.rank} ${o.name}${o.callSign?' · &#128251;'+o.callSign:''}</span></div>`).join('')
+    :`<div class="popup-row"><span class="popup-label">Officer</span><span class="popup-val"><span style="color:#aaa;font-style:italic;">Unassigned</span></span></div>`;
+  const pbClass='pb-'+post.status;
+  const statusLabel=post.status==='partial'?`PARTIAL (${assignedOfficers.length}/${post.slots.length})`:post.status.toUpperCase();
+  const marker=L.circleMarker([post.lat,post.lng],{
+    radius:11,fillColor:color,color:'#fff',weight:2.5,fillOpacity:0.92
+  }).addTo(mapMarkerLayer);
+  marker.bindTooltip(`<strong>${post.name}</strong>`,{permanent:false,direction:'top'});
+  marker.bindPopup(`
+    <div class="popup-title">${post.name}</div>
+    ${post.location?`<div class="popup-sub">&#128205; ${post.location}</div>`:''}
+    <div class="popup-row"><span class="popup-label">Status</span><span class="popup-badge ${pbClass}">${statusLabel}</span></div>
+    ${officerRows}
+    ${post.timeStart?`<div class="popup-row"><span class="popup-label">Time</span><span class="popup-val">${post.timeStart}${post.timeEnd?' – '+post.timeEnd:''}</span></div>`:''}
+    ${post.notes?`<div class="popup-row"><span class="popup-label">Notes</span><span class="popup-val" style="font-size:10px;">${post.notes}</span></div>`:''}
+    <div style="margin-top:8px;font-size:9px;color:var(--teal-med);">Use Erase tool to remove from map</div>
+  `,{maxWidth:260});
+  marker.on('click',()=>{if(S.currentTool==='erase') eraseFeature('post',post.id);});
+  postMarkers[post.id]=marker;
+}
+
+function syncAllMarkers(){
+  S.posts.forEach(p=>{if(p.lat!=null) updatePostMarker(p);});
+}
+
+function fitMapToPosts(){
+  const placed=S.posts.filter(p=>p.lat!=null);
+  if(!placed.length){showToast('No posts placed on map yet','warn');return;}
+  const bounds=L.latLngBounds(placed.map(p=>[p.lat,p.lng]));
+  map.fitBounds(bounds,{padding:[40,40]});
+}
+
+// ══════════════════════════════════════════════════
+//  POST PLACEMENT SELECT REFRESH
+// ══════════════════════════════════════════════════
+function refreshPostPlacementSelect(){
+  const sel=document.getElementById('postForPlacement');
+  const val=sel.value;
+  sel.innerHTML='<option value="">— select post —</option>'+
+    S.posts.map(p=>`<option value="${p.id}">${p.name}${p.lat!=null?' ✓':''}</option>`).join('');
+  if(val) sel.value=val;
+}
+
+// ══════════════════════════════════════════════════
+//  OFFICERS
+// ══════════════════════════════════════════════════
+function setShiftFilter(shift,btn){
+  S.activeShift=shift;
+  document.querySelectorAll('.shift-filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderOfficers();
+}
+function addOfficer(){
+  const name=document.getElementById('offName').value.trim();
+  const badge=document.getElementById('offBadge').value.trim();
+  const rank=document.getElementById('offRank').value;
+  const role=document.getElementById('offRole').value.trim();
+  const vehicle=document.getElementById('offVehicle').value.trim();
+  const callSign=document.getElementById('offCallSign').value.trim();
+  const cell=document.getElementById('offCell').value.trim();
+  const shift=document.getElementById('offShift').value;
+  if(!name){showToast('Enter officer name','warn');return;}
+  const o={id:S.nextId++,name,badge,rank,role,vehicle,callSign,cell,shift,assignedTo:null};
+  S.officers.push(o);
+  ['offName','offBadge','offRole','offVehicle','offCallSign','offCell'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('offShift').value='';
+  renderOfficers(); updateStats();
+  addLog(`Rostered: <em>${rank} ${name}</em>${badge?' (#'+badge+')':''}${callSign?' · '+callSign:''}${shift?' · Shift '+shift:''}`);
+  showToast(`${name} added`);
+}
+function removeOfficer(id){
+  const o=S.officers.find(x=>x.id===id);
+  if(o&&o.assignedTo!==null){
+    const post=S.posts.find(p=>p.id===o.assignedTo);
+    if(post){post.slots=post.slots.map(s=>s===id?null:s);post.status=computePostStatus(post);}
+    o.assignedTo=null;
+  }
+  S.officers=S.officers.filter(x=>x.id!==id);
+  renderOfficers(); renderBoard(); updateStats(); syncAllMarkers();
+  if(o) addLog(`Removed: <em>${o.name}</em>`);
+}
+function renderOfficers(){
+  const list=document.getElementById('officerList');
+  document.getElementById('rosterCount').textContent=S.officers.length;
+  if(!S.officers.length){
+    list.innerHTML='<div style="font-size:10px;color:var(--gray);font-style:italic;text-align:center;padding:7px;">No officers added</div>';
+    return;
+  }
+  list.innerHTML=S.officers.map(o=>{
+    const ini=o.name.split(',').map(s=>s.trim()[0]).join('').toUpperCase().slice(0,2);
+    const sup=['Sergeant','Commander'].includes(o.rank);
+    const assigned=o.assignedTo!==null;
+    const shiftMatch=S.activeShift==='all'||!o.shift||o.shift===S.activeShift;
+    const shiftClass=o.shift?'shift-'+o.shift.toLowerCase():'shift-all';
+    const shiftLabel=o.shift?o.shift:'ALL';
+    const line1=[o.rank,o.badge?'#'+o.badge:''].filter(Boolean).join(' · ');
+    const canDrag=!assigned&&shiftMatch;
+    return `<div class="officer-card ${assigned?'assigned':''} ${!shiftMatch?'shift-dimmed':''}" id="officer_${o.id}"
+      draggable="${canDrag}"
+      ondragstart="${canDrag?`onOfficerDragStart(event,${o.id})`:''}"
+      ondragend="onOfficerDragEnd(event)"
+      title="${assigned?'Currently assigned — unassign first':shiftMatch?'Drag to assign to a post':'Off-shift (shift filter active)'}">
+      <div class="officer-avatar ${sup?'sup':''}">${ini}</div>
+      <div class="officer-info">
+        <div class="officer-name">${o.name} <span class="shift-badge ${shiftClass}">${shiftLabel}</span></div>
+        <div class="officer-rank">${line1}</div>
+        ${o.callSign||o.vehicle?`<div class="officer-rank" style="color:var(--teal-web);margin-top:1px;">${o.callSign?'&#128251; '+o.callSign:''}${o.callSign&&o.vehicle?'  ':''}${o.vehicle?'&#128663; Unit '+o.vehicle:''}</div>`:''}
+        ${o.role||o.cell?`<div class="officer-rank" style="margin-top:1px;">${o.role?'&#9873; '+o.role:''}${o.role&&o.cell?'  ':''}${o.cell?'&#128241; '+o.cell:''}</div>`:''}
+      </div>
+      <div class="officer-status-dot ${assigned?'dot-assigned':'dot-available'}"></div>
+      <button class="icon-btn danger" onclick="removeOfficer(${o.id})" title="Remove">&#215;</button>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════
+//  ZONES
+// ══════════════════════════════════════════════════
+function addZone(){
+  const name=document.getElementById('zoneName').value.trim();
+  if(!name){showToast('Enter zone name','warn');return;}
+  const color=document.getElementById('zoneColor').value;
+  S.zones.push({id:S.nextId++,name,color});
+  document.getElementById('zoneName').value='';
+  refreshZoneSelect(); renderBoard();
+  addLog(`Zone added: <em>${name}</em>`);
+  showToast(`Zone "${name}" added`);
+}
+function removeZone(id){
+  if(S.posts.filter(p=>p.zoneId===id).length>0){showToast('Remove posts from this zone first','warn');return;}
+  const z=S.zones.find(x=>x.id===id);
+  S.zones=S.zones.filter(x=>x.id!==id);
+  refreshZoneSelect(); renderBoard();
+  if(z) addLog(`Zone removed: <em>${z.name}</em>`);
+}
+function refreshZoneSelect(){
+  const sel=document.getElementById('postZone');
+  const val=sel.value;
+  sel.innerHTML='<option value="">-- Zone --</option>'+S.zones.map(z=>`<option value="${z.id}">${z.name}</option>`).join('');
+  if(val) sel.value=val;
+}
+
+// ══════════════════════════════════════════════════
+//  POSTS
+// ══════════════════════════════════════════════════
+function addPost(){
+  const name=document.getElementById('postName').value.trim();
+  const location=document.getElementById('postLocation').value.trim();
+  const zoneId=parseInt(document.getElementById('postZone').value)||null;
+  const priority=document.getElementById('postPriority').value;
+  const timeStart=document.getElementById('postTimeStart').value;
+  const timeEnd=document.getElementById('postTimeEnd').value;
+  const capacity=parseInt(document.getElementById('postCapacity').value)||1;
+  if(!name){showToast('Enter post name','warn');return;}
+  if(!zoneId){showToast('Select a zone','warn');return;}
+  const post={id:S.nextId++,name,location,zoneId,priority,status:'unstaffed',
+    capacity,slots:Array(capacity).fill(null),notes:'',timeStart,timeEnd,lat:null,lng:null};
+  S.posts.push(post);
+  document.getElementById('postName').value='';
+  document.getElementById('postLocation').value='';
+  document.getElementById('postTimeStart').value='';
+  document.getElementById('postTimeEnd').value='';
+  document.getElementById('postCapacity').value='1';
+  renderBoard(); updateStats(); refreshPostPlacementSelect();
+  const zone=S.zones.find(z=>z.id===zoneId);
+  addLog(`Post added: <em>${name}</em> in zone <em>${zone?zone.name:'?'}</em> (${capacity} slot${capacity>1?'s':''})`);
+  showToast(`Post "${name}" added`);
+}
+function removePost(id){
+  const post=S.posts.find(p=>p.id===id);
+  if(!post) return;
+  post.slots.forEach(officerId=>{
+    if(officerId!==null){const o=S.officers.find(x=>x.id===officerId);if(o) o.assignedTo=null;}
+  });
+  if(postMarkers[id]){mapMarkerLayer.removeLayer(postMarkers[id]);delete postMarkers[id];}
+  S.posts=S.posts.filter(p=>p.id!==id);
+  renderBoard(); renderOfficers(); updateStats(); refreshPostPlacementSelect();
+  if(post) addLog(`Post removed: <em>${post.name}</em>`);
+}
+function computePostStatus(post){
+  const filled=post.slots.filter(s=>s!==null).length;
+  if(filled===0) return 'unstaffed';
+  if(filled===post.slots.length) return 'staffed';
+  return 'partial';
+}
+function updatePostStatus(id,status){
+  const post=S.posts.find(p=>p.id===id);
+  if(!post) return;
+  const old=post.status; post.status=status;
+  const bar=document.getElementById('statusbar_'+id);
+  if(bar) bar.className='post-status-bar status-'+status;
+  updateStats(); updatePostMarker(post);
+  if(old!==status) addLog(`Post <em>${post.name}</em> status set to <em>${status}</em>`);
+}
+function updatePostNotes(id,val){const post=S.posts.find(p=>p.id===id);if(post) post.notes=val;}
+
+// ══════════════════════════════════════════════════
+//  DRAG & DROP
+// ══════════════════════════════════════════════════
+let dragOfficerId=null;
+function onOfficerDragStart(e,id){
+  dragOfficerId=id;
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>{const el=document.getElementById('officer_'+id);if(el)el.classList.add('dragging');},0);
+}
+function onOfficerDragEnd(e){const el=document.getElementById('officer_'+dragOfficerId);if(el)el.classList.remove('dragging');}
+function onSlotDragOver(e,postId,slotIdx){e.preventDefault();e.dataTransfer.dropEffect='move';const el=document.getElementById(`slot_${postId}_${slotIdx}`);if(el)el.classList.add('drop-target');}
+function onSlotDragLeave(postId,slotIdx){const el=document.getElementById(`slot_${postId}_${slotIdx}`);if(el)el.classList.remove('drop-target');}
+function onSlotDrop(e,postId,slotIdx){
+  e.preventDefault();
+  const el=document.getElementById(`slot_${postId}_${slotIdx}`);if(el)el.classList.remove('drop-target');
+  if(!dragOfficerId) return;
+  assignOfficerToPost(dragOfficerId,postId,slotIdx);
+  dragOfficerId=null;
+}
+function assignOfficerToPost(officerId,postId,slotIdx){
+  const officer=S.officers.find(o=>o.id===officerId);
+  const post=S.posts.find(p=>p.id===postId);
+  if(!officer||!post) return;
+  // Check shift match
+  if(S.activeShift!=='all'&&officer.shift&&officer.shift!==S.activeShift){
+    showToast(`${officer.name} is Shift ${officer.shift} — shift filter active`,'warn'); return;
+  }
+  // Unassign from previous post
+  if(officer.assignedTo!==null){
+    const oldPost=S.posts.find(p=>p.id===officer.assignedTo);
+    if(oldPost){oldPost.slots=oldPost.slots.map(s=>s===officerId?null:s);oldPost.status=computePostStatus(oldPost);updatePostMarker(oldPost);}
+  }
+  // Displace officer already in this slot
+  if(post.slots[slotIdx]!==null){
+    const displaced=S.officers.find(o=>o.id===post.slots[slotIdx]);
+    if(displaced) displaced.assignedTo=null;
+  }
+  post.slots[slotIdx]=officerId;
+  officer.assignedTo=postId;
+  post.status=computePostStatus(post);
+  renderOfficers(); renderBoard(); updateStats(); updatePostMarker(post);
+  addLog(`Assigned <em>${officer.rank} ${officer.name}</em> → <em>${post.name}</em> (slot ${slotIdx+1})`);
+  showToast(`${officer.name} → ${post.name}`);
+}
+function unassignOfficer(postId,slotIdx){
+  const post=S.posts.find(p=>p.id===postId);
+  if(!post) return;
+  const officerId=post.slots[slotIdx];
+  if(officerId===null) return;
+  const officer=S.officers.find(o=>o.id===officerId);
+  if(officer) officer.assignedTo=null;
+  post.slots[slotIdx]=null;
+  post.status=computePostStatus(post);
+  renderOfficers(); renderBoard(); updateStats(); updatePostMarker(post);
+  addLog(`Unassigned from post <em>${post.name}</em> (slot ${slotIdx+1})`);
+}
+
+// ══════════════════════════════════════════════════
+//  RENDER BOARD
+// ══════════════════════════════════════════════════
+function renderBoard(){
+  const board=document.getElementById('boardContent');
+  if(!S.zones.length){
+    board.innerHTML=`<div style="text-align:center;padding:50px 20px;color:var(--gray);"><div style="font-size:24px;margin-bottom:10px;">📋</div><div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:5px;">No posts yet</div><div style="font-size:11px;">Add zones and posts using the sidebar.</div></div>`;
+    return;
+  }
+  let html='';
+  for(const zone of S.zones){
+    const zp=S.posts.filter(p=>p.zoneId===zone.id);
+    const fp=applyFilter(zp);
+    const collapsed=S.collapsedZones[zone.id];
+    const sc=zp.filter(p=>p.status==='staffed').length;
+    html+=`<div class="zone-group">
+      <div class="zone-header" onclick="toggleZone(${zone.id})" style="background:${zone.color};">
+        <span class="zone-name">${zone.name}</span>
+        <span class="zone-meta">${sc}/${zp.length} staffed</span>
+        <span class="zone-chevron ${collapsed?'':'open'}">▶</span>
+        <button class="icon-btn" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.8);" onclick="event.stopPropagation();removeZone(${zone.id})" title="Remove zone">×</button>
+      </div>
+      <div class="zone-posts" ${collapsed?'style="display:none"':''}>${
+        fp.length===0?`<div class="empty-zone">${S.activeFilter!=='all'?'No posts match filter.':'No posts in this zone.'}</div>`:
+        fp.map(p=>renderPostCard(p)).join('')
+      }</div>
+    </div>`;
+  }
+  board.innerHTML=html;
+}
+function renderPostCard(post){
+  const pLabel=post.priority==='high'?'HIGH PRI':post.priority==='med'?'MED PRI':'NORMAL';
+  const pClass=post.priority==='high'?'priority-high':post.priority==='med'?'priority-med':'';
+  const onMap=post.lat!=null;
+  const slotsHtml=post.slots.map((officerId,idx)=>{
+    const officer=officerId?S.officers.find(o=>o.id===officerId):null;
+    return `<div class="assignment-slot ${officer?'filled':''}" id="slot_${post.id}_${idx}"
+      ondragover="onSlotDragOver(event,${post.id},${idx})"
+      ondragleave="onSlotDragLeave(${post.id},${idx})"
+      ondrop="onSlotDrop(event,${post.id},${idx})">
+      ${officer?`
+        <div class="officer-avatar ${['Sergeant','Commander'].includes(officer.rank)?'sup':''}" style="width:20px;height:20px;font-size:8px;">${officer.name.split(',').map(s=>s.trim()[0]).join('').toUpperCase().slice(0,2)}</div>
+        <div style="flex:1;"><div class="assigned-name">${officer.name}</div><div class="assigned-rank">${officer.rank}${officer.badge?' · #'+officer.badge:''}</div></div>
+        <button class="unassign-btn" onclick="unassignOfficer(${post.id},${idx})">×</button>`
+      :`<span class="slot-empty-label">${post.slots.length>1?`↓ Slot ${idx+1} — Drop officer here`:'↓ Drop officer here'}</span>`}
+    </div>`;
+  }).join('');
+  return `<div class="post-card" id="postcard_${post.id}">
+    <div class="post-card-header">
+      <div class="post-status-bar status-${post.status}" id="statusbar_${post.id}"></div>
+      <div class="post-info">
+        <div class="post-number">POST ${String(post.id).padStart(3,'0')}</div>
+        <div class="post-name">${post.name}</div>
+        ${post.location?`<div class="post-location">📍 ${post.location}</div>`:''}
+      </div>
+      <div class="post-actions"><button class="icon-btn danger" onclick="removePost(${post.id})" title="Remove">×</button></div>
+    </div>
+    <div class="post-card-body">
+      <div class="post-detail-row">
+        <span class="post-tag ${pClass}">${pLabel}</span>
+        ${post.capacity>1?`<span class="post-tag" style="background:var(--teal-light);color:var(--teal-web);">${post.slots.filter(s=>s!==null).length}/${post.capacity} slots</span>`:''}
+        ${post.timeStart?`<span class="post-tag">${post.timeStart}${post.timeEnd?'–'+post.timeEnd:''}</span>`:''}
+        ${onMap?`<span class="post-tag on-map">📍 On Map</span>`:''}
+        <select class="status-select" id="statussel_${post.id}" onchange="updatePostStatus(${post.id},this.value)">
+          <option value="unstaffed" ${post.status==='unstaffed'?'selected':''}>Unstaffed</option>
+          <option value="partial" ${post.status==='partial'?'selected':''}>Partial</option>
+          <option value="staffed" ${post.status==='staffed'?'selected':''}>Staffed</option>
+          <option value="issue" ${post.status==='issue'?'selected':''}>Issue</option>
+          <option value="standby" ${post.status==='standby'?'selected':''}>Standby</option>
+        </select>
+      </div>
+      ${slotsHtml}
+      <textarea class="post-notes" rows="2" placeholder="Notes, instructions, issues..." onchange="updatePostNotes(${post.id},this.value)">${post.notes}</textarea>
+    </div>
+  </div>`;
+}
+function applyFilter(posts){
+  if(S.activeFilter==='all') return posts;
+  if(S.activeFilter==='issue') return posts.filter(p=>p.status==='issue'||p.status==='standby');
+  return posts.filter(p=>p.status===S.activeFilter);
+}
+function filterPosts(f,btn){
+  S.activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBoard();
+}
+function toggleZone(id){S.collapsedZones[id]=!S.collapsedZones[id];renderBoard();}
+
+// ══════════════════════════════════════════════════
+//  STATS
+// ══════════════════════════════════════════════════
+function updateStats(){
+  const total=S.posts.length;
+  document.getElementById('statTotal').textContent=total;
+  document.getElementById('statStaffed').textContent=S.posts.filter(p=>p.status==='staffed').length;
+  document.getElementById('statUnstaffed').textContent=S.posts.filter(p=>p.status==='unstaffed'||p.status==='partial').length;
+  document.getElementById('statIssue').textContent=S.posts.filter(p=>p.status==='issue'||p.status==='standby').length;
+  document.getElementById('statOfficers').textContent=S.officers.length;
+  document.getElementById('statAvailable').textContent=S.officers.filter(o=>o.assignedTo===null).length;
+}
+
+// ══════════════════════════════════════════════════
+//  LOG
+// ══════════════════════════════════════════════════
+function addLog(msg){
+  const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  S.log.push({time:t,msg});
+  const entries=document.getElementById('logEntries');
+  const div=document.createElement('div'); div.className='log-entry';
+  div.innerHTML=`<span class="log-time">${t}</span><span class="log-msg">${msg}</span>`;
+  entries.appendChild(div);
+  document.getElementById('activityLog').scrollTop=document.getElementById('activityLog').scrollHeight;
+}
+
+// ══════════════════════════════════════════════════
+//  OPERATIONS PLAN EXPORT
+// ══════════════════════════════════════════════════
+function generateOpsPlan(){
+  const ev = S.event;
+  const eventDate = ev.date ? new Date(ev.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}) : 'TBD';
+  const generated = new Date().toLocaleString('en-US',{month:'long',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const totalPosts = S.posts.length;
+  const staffedPosts = S.posts.filter(p=>p.status==='staffed').length;
+
+  // ── Helpers ──
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  function sectionHeader(num, title, icon){
+    return `<div class="section-header"><span class="section-num">${num}</span><span class="section-icon">${icon}</span>${title}</div>`;
+  }
+
+  function emptyNote(msg){
+    return `<p class="empty-note">${msg}</p>`;
+  }
+
+  // ── 1. Command Summary ──
+  const commandHTML = `
+    <table class="info-table">
+      <tr><td class="info-label">Event Name</td><td class="info-val">${esc(ev.name)||'<span class="tbd">Not set</span>'}</td><td class="info-label">Date</td><td class="info-val">${esc(eventDate)}</td></tr>
+      <tr><td class="info-label">Venue / Location</td><td class="info-val">${esc(ev.venue)||'<span class="tbd">Not set</span>'}</td><td class="info-label">Expected Attendance</td><td class="info-val">${esc(ev.attendance)||'<span class="tbd">Not set</span>'}</td></tr>
+      <tr><td class="info-label">Incident Commander</td><td class="info-val">${esc(ev.ic)||'<span class="tbd">Not set</span>'}</td><td class="info-label">Primary Radio Channel</td><td class="info-val">${esc(ev.channel)||'<span class="tbd">Not set</span>'}</td></tr>
+      <tr><td class="info-label">Total Posts</td><td class="info-val">${totalPosts}</td><td class="info-label">Officers Assigned</td><td class="info-val">${S.officers.filter(o=>o.assignedTo!==null).length} of ${S.officers.length}</td></tr>
+    </table>`;
+
+  // ── 2. Organizer Contacts ──
+  let contactsHTML = '';
+  if(S.contacts.length){
+    contactsHTML = `<table class="data-table">
+      <thead><tr><th>Name</th><th>Title / Organization</th><th>Primary Phone</th><th>Alt / Radio</th><th>Email</th></tr></thead>
+      <tbody>${S.contacts.map(c=>`<tr>
+        <td><strong>${esc(c.name)}</strong></td>
+        <td>${esc(c.title)}</td>
+        <td>${esc(c.phone)}</td>
+        <td>${esc(c.alt)}</td>
+        <td>${esc(c.email)}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } else { contactsHTML = emptyNote('No organizer contacts entered.'); }
+
+  // ── 3. Event Timeline ──
+  let timelineHTML = '';
+  if(S.timeline.length){
+    const catLabels={general:'General',traffic:'Traffic / Road',race:'Race / Sport',stage:'Stage / Performance',ops:'Operations',medical:'Medical / Safety'};
+    timelineHTML = `<table class="data-table">
+      <thead><tr><th style="width:70px;">Time</th><th>Activity</th><th style="width:120px;">Category</th><th>Notes</th></tr></thead>
+      <tbody>${S.timeline.map(e=>`<tr>
+        <td style="font-family:monospace;font-weight:700;">${esc(e.time)}</td>
+        <td><strong>${esc(e.label)}</strong></td>
+        <td>${esc(catLabels[e.category]||e.category)}</td>
+        <td style="font-size:10px;color:#555;">${esc(e.notes)}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } else { timelineHTML = emptyNote('No timeline entries added.'); }
+
+  // ── 4. Zones & Post Assignments ──
+  let postsHTML = '';
+  if(S.zones.length){
+    postsHTML = S.zones.map(zone=>{
+      const zPosts = S.posts.filter(p=>p.zoneId===zone.id);
+      const rows = zPosts.length ? zPosts.map(p=>{
+        const assignedOfficers=p.slots.map(id=>id?S.officers.find(x=>x.id===id):null).filter(Boolean);
+        const priLabel = p.priority==='high'?'HIGH':p.priority==='med'?'MED':'';
+        const officerCell=assignedOfficers.length>0
+          ?assignedOfficers.map(o=>`<strong>${esc(o.rank)} ${esc(o.name)}</strong>${o.callSign?` <span style="color:#5B8DB8;font-size:10px;">(${esc(o.callSign)})</span>`:''}`).join('<br>')
+          :`<span class="unst">${p.capacity>1?`UNSTAFFED (0/${p.capacity} slots)`:'UNSTAFFED'}</span>`;
+        const unitCell=assignedOfficers.map(o=>o.vehicle?'Unit '+esc(o.vehicle):'').filter(Boolean).join(', ');
+        return `<tr>
+          <td><strong>${esc(p.name)}</strong>${priLabel?` <span class="badge badge-${p.priority}">${priLabel}</span>`:''}${p.capacity>1?` <span style="font-size:9pt;color:#5B8DB8;">(${p.capacity} slots)</span>`:''}</td>
+          <td style="font-size:10px;">${esc(p.location)}</td>
+          <td style="font-family:monospace;font-size:10px;">${p.timeStart?esc(p.timeStart)+(p.timeEnd?' – '+esc(p.timeEnd):''):''}</td>
+          <td>${officerCell}</td>
+          <td style="font-size:10px;">${unitCell}</td>
+          <td style="font-size:10px;color:#555;">${esc(p.notes)}</td>
+        </tr>`;
+      }).join('') : `<tr><td colspan="6" style="text-align:center;color:#999;font-style:italic;padding:8px;">No posts in this zone</td></tr>`;
+
+      return `<div class="zone-block">
+        <div class="zone-label" style="background:${esc(zone.color)};">${esc(zone.name)}</div>
+        <table class="data-table">
+          <thead><tr><th>Post</th><th>Location</th><th>Time Window</th><th>Assigned Officer(s)</th><th>Unit</th><th>Notes</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    }).join('');
+  } else { postsHTML = emptyNote('No zones or posts configured.'); }
+
+  // ── 5. Personnel Roster ──
+  let rosterHTML = '';
+  if(S.officers.length){
+    rosterHTML = `<table class="data-table">
+      <thead><tr><th>Name</th><th>Rank</th><th>Badge</th><th>Shift</th><th>Call Sign</th><th>Unit</th><th>Role</th><th>Cell</th><th>Post Assignment</th></tr></thead>
+      <tbody>${S.officers.map(o=>{
+        const post = o.assignedTo ? S.posts.find(p=>p.id===o.assignedTo) : null;
+        const zone = post ? S.zones.find(z=>z.id===post.zoneId) : null;
+        return `<tr>
+          <td><strong>${esc(o.name)}</strong></td>
+          <td>${esc(o.rank)}</td>
+          <td style="font-family:monospace;">${esc(o.badge)}</td>
+          <td style="font-family:monospace;">${o.shift?esc(o.shift):'All Day'}</td>
+          <td style="font-family:monospace;">${esc(o.callSign)}</td>
+          <td style="font-family:monospace;">${o.vehicle?'Unit '+esc(o.vehicle):''}</td>
+          <td style="font-size:10px;">${esc(o.role)}</td>
+          <td style="font-family:monospace;font-size:10px;">${esc(o.cell)}</td>
+          <td>${post?`${esc(post.name)}${zone?' <span style="color:#5B8DB8;font-size:10px;">('+esc(zone.name)+')</span>':''}` : '<span style="color:#999;">Unassigned</span>'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  } else { rosterHTML = emptyNote('No officers added to roster.'); }
+
+  // ── 6. Road Closures, Evac Routes & Assembly Points ──
+  let closuresHTML = '';
+  if(S.closures.length||S.evacRoutes.length||S.assemblyPoints.length||S.routes.length||S.routeMarkers.length){
+    let rows='';
+    if(S.routes.length){
+      const routeLabels={parade:'Parade Path',race:'Race / Run Course',procession:'Procession',bike:'Bike Route',staging:'Vehicle Staging / Turn',other:'Other Route'};
+      const routeColors={parade:'#8B008B',race:'#E57300',procession:'#1a3a7a',bike:'#2E7D32',staging:'#795548',other:'#5B8DB8'};
+      S.routes.forEach(r=>{
+        const col=routeColors[r.routeType]||'#5B8DB8';
+        const lbl=routeLabels[r.routeType]||r.routeType;
+        rows+=`<tr><td><span class="badge" style="background:${col}22;color:${col};border:1px solid ${col}44;">${esc(lbl.toUpperCase())}</span></td><td>${esc(r.name)}</td><td style="color:#999;">Event route</td></tr>`;
+      });
+    }
+    if(S.routeMarkers.length){
+      const rmColors={start:'#1a7a4a',finish:'#a02020',checkpoint:'#0E96BC'};
+      const rmEmoji={start:'🚩',finish:'🏁',checkpoint:'🔵'};
+      S.routeMarkers.forEach(rm=>{
+        const col=rmColors[rm.markerType]||'#0E96BC';
+        rows+=`<tr><td><span class="badge" style="background:${col}22;color:${col};">${rmEmoji[rm.markerType]||'📍'} ${esc(rm.markerType.toUpperCase())}</span></td><td>${esc(rm.name)}</td><td style="color:#999;">${rm.lat.toFixed(5)}, ${rm.lng.toFixed(5)}</td></tr>`;
+      });
+    }
+    if(S.closures.length) S.closures.forEach(c=>{
+      rows+=`<tr><td><span class="badge badge-${c.type==='detour'?'med':'high'}">${esc(c.type.toUpperCase())}</span></td><td>${esc(c.name)}</td><td style="color:#999;">Road closure / detour</td></tr>`;
+    });
+    if(S.evacRoutes.length) S.evacRoutes.forEach(r=>{
+      const rLabel=r.routeType==='primary'?'EVAC — PRIMARY':'EVAC — SECONDARY';
+      rows+=`<tr><td><span class="badge" style="background:${r.routeType==='primary'?'#e6f5ee':'#e8f4fb'};color:${r.routeType==='primary'?'#1a7a4a':'#0E96BC'};">${esc(rLabel)}</span></td><td>${esc(r.name)}</td><td style="color:#999;">Evacuation route</td></tr>`;
+    });
+    if(S.assemblyPoints.length) S.assemblyPoints.forEach(a=>{
+      rows+=`<tr><td><span class="badge" style="background:#e8f5e9;color:#1a7a4a;">ASSEMBLY</span></td><td>⭐ ${esc(a.name)}</td><td style="color:#999;">Assembly / staging point</td></tr>`;
+    });
+    closuresHTML=`<table class="data-table">
+      <thead><tr><th style="width:160px;">Type</th><th>Name / Description</th><th>Notes / Coords</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  } else { closuresHTML = emptyNote('No event routes, road closures, evacuation routes, or assembly points entered.'); }
+
+  // ── 7. Equipment & Resources ──
+  let resourcesHTML = '';
+  if(S.resources.length){
+    const catLabel={vehicle:'Vehicle',barricade:'Barricade / Signage',radio:'Radio / Comms',medical:'Medical / First Aid',lighting:'Lighting / Generator',command:'Command / Admin',other:'Other'};
+    resourcesHTML=`<table class="data-table">
+      <thead><tr><th>Item</th><th>Category</th><th>Qty</th><th>Zone</th><th>Location / Notes</th><th>Status</th></tr></thead>
+      <tbody>${S.resources.map(r=>{
+        const zone=r.zone?S.zones.find(z=>z.id==r.zone):null;
+        const statusColor=r.status==='available'?'#1a7a4a':r.status==='deployed'?'#0E96BC':'#a02020';
+        const statusLabel=r.status==='available'?'Available':r.status==='deployed'?'Deployed':'Out of Service';
+        return `<tr>
+          <td><strong>${esc(r.name)}</strong></td>
+          <td>${esc(catLabel[r.category]||r.category)}</td>
+          <td style="font-family:monospace;font-weight:700;">${r.qty}</td>
+          <td>${zone?esc(zone.name):''}</td>
+          <td style="font-size:10px;">${esc(r.location)}</td>
+          <td><span style="font-weight:700;color:${statusColor};font-size:9pt;">${statusLabel}</span></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  } else { resourcesHTML = emptyNote('No equipment or resources logged.'); }
+
+  // ── 8. Safety Plans ──
+  const safetyHTML = S.scenarios.map(sc=>`
+    <div class="safety-card" style="border-left-color:${sc.color.header};">
+      <div class="safety-card-title" style="color:${sc.color.header};">${sc.icon}&nbsp; ${esc(sc.title)}</div>
+      <div class="safety-subsection">
+        <div class="safety-sub-label">Immediate Actions</div>
+        <ol class="safety-steps">${sc.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
+      </div>
+      <div class="safety-row-grid">
+        <div>
+          <div class="safety-sub-label">Notify</div>
+          <p class="safety-body">${esc(sc.notify)}</p>
+        </div>
+        <div>
+          <div class="safety-sub-label">Staging &amp; Locations</div>
+          <p class="safety-body">${esc(sc.staging)}</p>
+        </div>
+      </div>
+      <div class="safety-ref"><strong>Reference:</strong> ${esc(sc.sopRef)}</div>
+    </div>`).join('');
+
+  // ── Assemble full document ──
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Operations Plan — ${esc(ev.name||'Special Event')} — CRPD</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);font-size:11pt;color:#0d1f2d;background:#fff;padding:0;}
+  /* Cover */
+  .cover{background:#012A4A;color:#fff;padding:56px 64px 48px;min-height:220px;position:relative;}
+  .cover-dept{font-size:9pt;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#87CBDE;margin-bottom:6px;}
+  .cover-title{font-size:26pt;font-weight:700;line-height:1.15;margin-bottom:10px;}
+  .cover-sub{font-size:12pt;color:#C4E5EF;font-weight:400;}
+  .cover-meta{margin-top:28px;display:flex;gap:40px;flex-wrap:wrap;}
+  .cover-meta-item{display:flex;flex-direction:column;gap:3px;}
+  .cover-meta-label{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#87CBDE;}
+  .cover-meta-val{font-size:10pt;font-weight:600;color:#fff;font-family:var(--font-mono);}
+  .cover-stripe{height:5px;background:linear-gradient(90deg,#0E96BC,#5B8DB8);}
+  .cover-stamp{position:absolute;top:40px;right:56px;width:60px;height:60px;background:#0E96BC;clip-path:polygon(50% 0%,92% 15%,100% 40%,92% 75%,50% 100%,8% 75%,0% 40%,8% 15%);display:flex;align-items:center;justify-content:center;font-size:9pt;font-weight:700;color:#012A4A;letter-spacing:-.5px;}
+  /* TOC */
+  .toc{padding:28px 64px;background:#E9F4FA;border-bottom:2px solid #b8d9e8;}
+  .toc-title{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#5B8DB8;margin-bottom:10px;}
+  .toc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .toc-item{font-size:9pt;color:#012A4A;font-weight:500;}
+  .toc-num{font-family:var(--font-mono);font-weight:700;color:#0E96BC;margin-right:5px;}
+  /* Body */
+  .body-wrap{padding:32px 64px 56px;}
+  .ops-section{margin-bottom:36px;}
+  .section-header{display:flex;align-items:center;gap:10px;padding:9px 14px;background:#012A4A;border-radius:5px;margin-bottom:14px;}
+  .section-num{font-family:var(--font-mono);font-size:8pt;font-weight:700;color:#87CBDE;min-width:20px;}
+  .section-icon{font-size:14pt;line-height:1;}
+  .section-header{font-size:12pt;font-weight:700;color:#fff;}
+  /* Info table */
+  .info-table{width:100%;border-collapse:collapse;margin-bottom:4px;}
+  .info-table td{padding:7px 10px;border:1px solid #C4E5EF;vertical-align:top;}
+  .info-label{background:#EDF8FB;font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#5B8DB8;width:160px;}
+  .info-val{font-size:10pt;font-weight:500;}
+  /* Data tables */
+  .data-table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:4px;}
+  .data-table thead tr{background:#012A4A;}
+  .data-table thead th{color:#fff;padding:6px 9px;text-align:left;font-size:8pt;font-weight:700;letter-spacing:.3px;}
+  .data-table tbody tr:nth-child(even){background:#EDF8FB;}
+  .data-table tbody td{padding:6px 9px;border-bottom:1px solid #C4E5EF;vertical-align:top;}
+  /* Zone block */
+  .zone-block{margin-bottom:16px;}
+  .zone-label{color:#fff;font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:5px 12px;border-radius:4px 4px 0 0;display:inline-block;}
+  .zone-block .data-table{border-top:none;}
+  /* Badges */
+  .badge{display:inline-block;font-size:7.5pt;font-weight:700;padding:1px 5px;border-radius:3px;font-family:var(--font-mono);vertical-align:middle;}
+  .badge-high{background:#fdecea;color:#a02020;}
+  .badge-med{background:#fff4e6;color:#b85c00;}
+  .badge-closure{background:#fdecea;color:#a02020;}
+  .badge-detour{background:#fff4e6;color:#b85c00;}
+  .unst{color:#a02020;font-weight:700;font-size:9pt;}
+  .tbd{color:#999;font-style:italic;}
+  .empty-note{color:#999;font-style:italic;font-size:10pt;padding:10px 0;}
+  /* Safety plans */
+  .safety-card{border-left:4px solid #012A4A;padding:14px 16px;margin-bottom:16px;background:#fafbfc;border-radius:0 6px 6px 0;border-top:1px solid #e0e8f0;border-right:1px solid #e0e8f0;border-bottom:1px solid #e0e8f0;}
+  .safety-card-title{font-size:12pt;font-weight:700;margin-bottom:10px;}
+  .safety-subsection{margin-bottom:10px;}
+  .safety-sub-label{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#5B8DB8;margin-bottom:5px;}
+  .safety-steps{padding-left:20px;display:flex;flex-direction:column;gap:4px;}
+  .safety-steps li{font-size:9.5pt;line-height:1.45;padding-left:4px;}
+  .safety-row-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:10px;}
+  .safety-body{font-size:9.5pt;line-height:1.5;color:#333;}
+  .safety-ref{font-size:8.5pt;color:#666;background:#f0f4f7;border-radius:4px;padding:6px 9px;margin-top:4px;}
+  /* Footer */
+  .doc-footer{background:#012A4A;color:rgba(255,255,255,0.5);font-size:7.5pt;padding:10px 64px;display:flex;justify-content:space-between;margin-top:auto;}
+  /* Print */
+  @media print{
+    body{font-size:9.5pt;}
+    .cover{padding:40px 48px 36px;}
+    .cover-title{font-size:20pt;}
+    .toc,.body-wrap{padding-left:48px;padding-right:48px;}
+    .ops-section{page-break-inside:avoid;}
+    .safety-card{page-break-inside:avoid;}
+    .zone-block{page-break-inside:avoid;}
+    .no-print{display:none!important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- Print/Save bar (hidden on print) -->
+<div class="no-print" style="background:#0E96BC;color:#fff;padding:10px 64px;display:flex;align-items:center;justify-content:space-between;">
+  <span style="font-size:11pt;font-weight:600;">CRPD Special Event Operations Plan &mdash; Preview</span>
+  <div style="display:flex;gap:10px;">
+    <button onclick="window.print()" style="background:#012A4A;color:#fff;border:none;padding:7px 18px;border-radius:5px;font-weight:700;cursor:pointer;font-size:11pt;">🖨 Print / Save as PDF</button>
+    <button onclick="window.close()" style="background:rgba(255,255,255,0.2);color:#fff;border:none;padding:7px 14px;border-radius:5px;font-weight:600;cursor:pointer;font-size:11pt;">✕ Close</button>
+  </div>
+</div>
+
+<!-- Cover -->
+<div class="cover">
+  <div class="cover-stamp">CRPD</div>
+  <div class="cover-dept">Castle Rock Police Department</div>
+  <div class="cover-title">${esc(ev.name||'Special Event')} Operations Plan</div>
+  <div class="cover-sub">Special Event Planning &amp; Resource Deployment</div>
+  <div class="cover-meta">
+    <div class="cover-meta-item"><span class="cover-meta-label">Event Date</span><span class="cover-meta-val">${esc(eventDate)}</span></div>
+    <div class="cover-meta-item"><span class="cover-meta-label">Venue</span><span class="cover-meta-val">${esc(ev.venue||'TBD')}</span></div>
+    <div class="cover-meta-item"><span class="cover-meta-label">Incident Commander</span><span class="cover-meta-val">${esc(ev.ic||'TBD')}</span></div>
+    <div class="cover-meta-item"><span class="cover-meta-label">Primary Channel</span><span class="cover-meta-val">${esc(ev.channel||'TBD')}</span></div>
+    <div class="cover-meta-item"><span class="cover-meta-label">Generated</span><span class="cover-meta-val">${esc(generated)}</span></div>
+  </div>
+</div>
+<div class="cover-stripe"></div>
+
+<!-- Table of Contents -->
+<div class="toc">
+  <div class="toc-title">Contents</div>
+  <div class="toc-grid">
+    <div class="toc-item"><span class="toc-num">1</span>Command Summary</div>
+    <div class="toc-item"><span class="toc-num">2</span>Organizer Contacts</div>
+    <div class="toc-item"><span class="toc-num">3</span>Event Timeline</div>
+    <div class="toc-item"><span class="toc-num">4</span>Zones &amp; Post Assignments</div>
+    <div class="toc-item"><span class="toc-num">5</span>Personnel Roster</div>
+    <div class="toc-item"><span class="toc-num">6</span>Event Routes, Road Closures &amp; Assembly Points</div>
+    <div class="toc-item"><span class="toc-num">7</span>Equipment &amp; Resources</div>
+    <div class="toc-item"><span class="toc-num">8</span>Safety Plans</div>
+  </div>
+</div>
+
+<!-- Body -->
+<div class="body-wrap">
+
+  <div class="ops-section">
+    ${sectionHeader(1,'Command Summary','📋')}
+    ${commandHTML}
+  </div>
+
+  <div class="ops-section">
+    ${sectionHeader(2,'Organizer Contacts','📞')}
+    ${contactsHTML}
+  </div>
+
+  <div class="ops-section">
+    ${sectionHeader(3,'Event Timeline','📅')}
+    ${timelineHTML}
+  </div>
+
+  <div class="ops-section">
+    ${sectionHeader(4,'Zones &amp; Post Assignments','📍')}
+    <p style="font-size:9pt;color:#666;margin-bottom:12px;">
+      ${staffedPosts} of ${totalPosts} posts fully staffed at time of export.
+      ${S.closures.length ? S.closures.length+' road closure(s) / detour(s) planned — see Section 6.' : ''}
+    </p>
+    ${postsHTML}
+  </div>
+
+  <div class="ops-section">
+    ${sectionHeader(5,'Personnel Roster','👮')}
+    ${rosterHTML}
+  </div>
+
+  <div class="ops-section">
+    ${sectionHeader(6,'Event Routes, Road Closures &amp; Assembly Points','🗺')}
+    ${closuresHTML}
+  </div>
+
+  <div class="ops-section">
+    ${sectionHeader(7,'Equipment &amp; Resources','🗂')}
+    ${resourcesHTML}
+  </div>
+
+  <div class="ops-section">
+    ${sectionHeader(8,'Safety Plans — Quick Reference','🚨')}
+    <p style="font-size:9pt;color:#a02020;background:#fdecea;border:1px solid #f0c0c0;border-radius:4px;padding:8px 12px;margin-bottom:16px;">
+      These are immediate-action quick-reference cheat sheets. They do not replace CRPD SOPs, the Emergency Response Guidebook, or ICS/NIMS protocols. Always defer to established policy and supervisor direction.
+    </p>
+    ${safetyHTML}
+  </div>
+
+</div>
+
+<div class="doc-footer">
+  <span>Castle Rock Police Department &mdash; ${esc(ev.name||'Special Event')} Operations Plan</span>
+  <span>Generated ${esc(generated)} &mdash; FOR OFFICIAL USE ONLY</span>
+</div>
+
+</body>
+</html>`;
+
+  const win = window.open('','_blank');
+  if(!win){ showToast('Pop-up blocked — allow pop-ups and try again','warn'); return; }
+  win.document.write(html);
+  win.document.close();
+  addLog(`Operations plan exported: <em>${ev.name||'Special Event'}</em>`);
+  showToast('Ops plan opened — use Print / Save as PDF');
+}
+
+// ══════════════════════════════════════════════════
+//  RESOURCES
+// ══════════════════════════════════════════════════
+const RES_ICONS={vehicle:'🚗',barricade:'🚧',radio:'📻',medical:'🩺',lighting:'💡',command:'📋',other:'📦'};
+const RES_CAT_BG={vehicle:'#e8edf5',barricade:'#fff4e6',radio:'#e6f5ee',medical:'#fdecea',lighting:'#fffbe6',command:'#EDF8FB',other:'#f0f4f7'};
+function refreshResZoneSelect(){
+  const sel=document.getElementById('resZone');if(!sel)return;
+  const val=sel.value;
+  sel.innerHTML='<option value="">— No Zone —</option>'+S.zones.map(z=>`<option value="${z.id}">${z.name}</option>`).join('');
+  if(val) sel.value=val;
+}
+function addResource(){
+  const name=document.getElementById('resName').value.trim();
+  const category=document.getElementById('resCategory').value;
+  const qty=parseInt(document.getElementById('resQty').value)||1;
+  const zone=document.getElementById('resZone').value;
+  const location=document.getElementById('resLocation').value.trim();
+  const status=document.getElementById('resStatus').value;
+  if(!name){showToast('Enter item name','warn');return;}
+  const r={id:S.nextId++,name,category,qty,zone,location,status};
+  S.resources.push(r);
+  document.getElementById('resName').value='';
+  document.getElementById('resQty').value='1';
+  document.getElementById('resLocation').value='';
+  document.getElementById('resStatus').value='available';
+  renderResources(); renderResStats();
+  addLog(`Resource added: <em>${name}</em> (${qty}x ${category})`);
+  showToast(`${name} added`);
+}
+function removeResource(id){
+  const r=S.resources.find(x=>x.id===id);
+  S.resources=S.resources.filter(x=>x.id!==id);
+  renderResources(); renderResStats();
+  if(r) addLog(`Resource removed: <em>${r.name}</em>`);
+}
+function updateResourceStatus(id,status){
+  const r=S.resources.find(x=>x.id===id);
+  if(!r) return;
+  r.status=status; renderResources(); renderResStats();
+  addLog(`Resource <em>${r.name}</em> → <em>${status}</em>`);
+}
+function renderResStats(){
+  const el=document.getElementById('resStats');if(!el)return;
+  const avail=S.resources.filter(r=>r.status==='available').length;
+  const dep=S.resources.filter(r=>r.status==='deployed').length;
+  const oos=S.resources.filter(r=>r.status==='oos').length;
+  el.innerHTML=[
+    {label:'Total Items',val:S.resources.length,color:'var(--navy)'},
+    {label:'Available',val:avail,color:'var(--green)'},
+    {label:'Deployed',val:dep,color:'var(--teal-web)'},
+    {label:'Out of Service',val:oos,color:'var(--red)'}
+  ].map(s=>`<div style="background:var(--white);border:1px solid var(--border);border-radius:6px;padding:8px 14px;text-align:center;min-width:90px;">
+    <div style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:${s.color};">${s.val}</div>
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--gray);font-weight:600;">${s.label}</div>
+  </div>`).join('');
+}
+function renderResources(){
+  const grid=document.getElementById('resourceGrid');if(!grid)return;
+  if(!S.resources.length){
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--gray);font-size:12px;font-style:italic;">No resources added yet.</div>';
+    return;
+  }
+  grid.innerHTML=S.resources.map(r=>{
+    const icon=RES_ICONS[r.category]||'📦';
+    const bg=RES_CAT_BG[r.category]||'#f0f4f7';
+    const zone=r.zone?S.zones.find(z=>z.id==r.zone):null;
+    const statusClass=r.status==='available'?'res-available':r.status==='deployed'?'res-deployed':'res-oos';
+    const statusLabel=r.status==='available'?'Available':r.status==='deployed'?'Deployed':'Out of Service';
+    return `<div class="resource-card">
+      <div class="resource-card-header">
+        <div class="resource-icon" style="background:${bg};">${icon}</div>
+        <div class="resource-name">${r.name}</div>
+        <button class="icon-btn danger" onclick="removeResource(${r.id})" title="Remove">×</button>
+      </div>
+      <div class="resource-body">
+        <div class="resource-meta">${r.category.charAt(0).toUpperCase()+r.category.slice(1)}${zone?' · '+zone.name:''}${r.location?' · '+r.location:''}</div>
+        <div class="res-qty-row">
+          <span class="res-qty-label">Qty:</span><span class="res-qty-val">${r.qty}</span>
+          <span class="res-status ${statusClass}">${statusLabel}</span>
+        </div>
+        <select style="margin-top:6px;width:100%;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:11px;background:var(--bg);color:var(--text);font-family:var(--font-sans);" onchange="updateResourceStatus(${r.id},this.value)">
+          <option value="available" ${r.status==='available'?'selected':''}>Available</option>
+          <option value="deployed" ${r.status==='deployed'?'selected':''}>Deployed</option>
+          <option value="oos" ${r.status==='oos'?'selected':''}>Out of Service</option>
+        </select>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════
+//  WEATHER
+// ══════════════════════════════════════════════════
+async function fetchWeather(){
+  const el=document.getElementById('weatherContent');if(!el)return;
+  el.innerHTML='<div class="weather-loading">Fetching forecast from National Weather Service...</div>';
+  try{
+    const r1=await fetch('https://api.weather.gov/points/39.3722,-104.8561',{headers:{'User-Agent':'CRPD-EventTracker/3.0'}});
+    if(!r1.ok) throw new Error('NWS points API error ('+r1.status+')');
+    const d1=await r1.json();
+    const forecastUrl=d1.properties.forecast;
+    const r2=await fetch(forecastUrl,{headers:{'User-Agent':'CRPD-EventTracker/3.0'}});
+    if(!r2.ok) throw new Error('NWS forecast API error ('+r2.status+')');
+    const d2=await r2.json();
+    const periods=d2.properties.periods.slice(0,6);
+    el.innerHTML='<div class="weather-grid">'+periods.map(p=>`
+      <div class="weather-period">
+        <div class="weather-period-name">${p.name}</div>
+        <div class="weather-temp">${p.temperature}°${p.temperatureUnit}</div>
+        <div class="weather-desc">${p.shortForecast}</div>
+        ${p.windSpeed?`<div class="weather-desc" style="color:var(--gray);margin-top:2px;">💨 ${p.windSpeed} ${p.windDirection||''}</div>`:''}
+      </div>`).join('')+'</div>';
+  }catch(err){
+    el.innerHTML=`<div class="weather-loading" style="color:var(--red);">Could not load forecast. Check internet connection and try again.<br><small style="color:var(--gray);">${err.message}</small></div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  PRINT MAP
+// ══════════════════════════════════════════════════
+function printMap(){
+  const mapData={
+    eventName:S.event.name, eventDate:S.event.date, eventVenue:S.event.venue,
+    posts:S.posts.filter(p=>p.lat!=null).map(p=>({
+      id:p.id,name:p.name,location:p.location,lat:p.lat,lng:p.lng,status:p.status,
+      capacity:p.capacity,
+      officers:p.slots.map(id=>id?S.officers.find(o=>o.id===id):null).filter(Boolean).map(o=>o.rank+' '+o.name)
+    })),
+    closures:S.closures, evacRoutes:S.evacRoutes,
+    assemblyPoints:S.assemblyPoints, annotations:S.annotations,
+    routes:S.routes, routeMarkers:S.routeMarkers
+  };
+  const win=window.open('','_blank');
+  if(!win){showToast('Pop-up blocked — allow pop-ups for this page','warn');return;}
+  win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>CRPD Event Map — ${mapData.eventName||'Special Event'}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"><\/script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;display:flex;flex-direction:column;height:100vh;}
+  #ctrl{height:52px;display:flex;align-items:center;gap:14px;padding:0 18px;background:#012A4A;color:#fff;flex-shrink:0;}
+  #ctrl .ttl{font-size:13px;font-weight:700;flex:1;}
+  #ctrl .sub{font-size:10px;color:#87CBDE;display:block;margin-top:1px;}
+  #ctrl button{background:#87CBDE;color:#012A4A;border:none;padding:7px 16px;border-radius:5px;font-weight:700;cursor:pointer;font-size:12px;}
+  #map{flex:1;}
+  @media print{#ctrl{display:none!important}}
+</style>
+</head>
+<body>
+<div id="ctrl">
+  <div class="ttl">${mapData.eventName||'CRPD Special Event'} — Operational Map<span class="sub">${mapData.eventDate||''}${mapData.eventVenue?' · '+mapData.eventVenue:''}</span></div>
+  <button onclick="window.print()">🖨 Print / Save PDF</button>
+</div>
+<div id="map"></div>
+<script>
+const STATUS_COLORS={staffed:'#1a7a4a',partial:'#0E96BC',unstaffed:'#a02020',issue:'#b85c00',standby:'#5B8DB8'};
+const D=${JSON.stringify(mapData)};
+const map=L.map('map').setView([39.3722,-104.8561],14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',subdomains:'abc',maxZoom:19}).addTo(map);
+const bounds=[];
+D.posts.forEach(p=>{
+  const color=STATUS_COLORS[p.status]||'#a02020';
+  const m=L.circleMarker([p.lat,p.lng],{radius:11,fillColor:color,color:'#fff',weight:2.5,fillOpacity:0.92}).addTo(map);
+  m.bindTooltip('<strong>'+p.name+'</strong>',{permanent:true,direction:'top',offset:[0,-12]});
+  const oText=p.officers.length?p.officers.join('<br>'):'Unassigned';
+  const sLabel=p.status==='partial'?'PARTIAL ('+p.officers.length+'/'+p.capacity+')':p.status.toUpperCase();
+  m.bindPopup('<strong>'+p.name+'</strong>'+(p.location?'<br>📍 '+p.location:'')+'<br><strong>'+sLabel+'</strong><br>'+oText);
+  bounds.push([p.lat,p.lng]);
+});
+D.closures.forEach(cl=>{
+  const color=cl.type==='detour'?'#b85c00':'#cc2020';
+  L.polyline(cl.latlngs,{color,weight:4,dashArray:cl.type==='detour'?'10 5':null}).addTo(map).bindPopup('<strong>'+cl.name+'</strong><br>'+cl.type.toUpperCase());
+});
+D.evacRoutes.forEach(ev=>{
+  const color=ev.routeType==='primary'?'#1a7a4a':'#0E96BC';
+  L.polyline(ev.latlngs,{color,weight:3,dashArray:'12 4'}).addTo(map).bindPopup('<strong>'+ev.name+'</strong><br>'+(ev.routeType==='primary'?'Primary':'Secondary')+' Evac Route');
+});
+var ROUTE_STYLES_P={parade:{color:'#8B008B',dashArray:null},race:{color:'#E57300',dashArray:null},procession:{color:'#1a3a7a',dashArray:null},bike:{color:'#2E7D32',dashArray:'10 6'},staging:{color:'#795548',dashArray:'6 6'},other:{color:'#5B8DB8',dashArray:null}};
+var ROUTE_LABELS_P={parade:'Parade Path',race:'Race / Run Course',procession:'Procession',bike:'Bike Route',staging:'Vehicle Staging / Turn',other:'Other Route'};
+D.routes.forEach(function(r){
+  var s=ROUTE_STYLES_P[r.routeType]||ROUTE_STYLES_P.other;
+  L.polyline(r.latlngs,{color:s.color,weight:5,dashArray:s.dashArray,opacity:.9}).addTo(map).bindPopup('<strong>'+r.name+'</strong><br>'+(ROUTE_LABELS_P[r.routeType]||r.routeType));
+});
+var RM_CONFIG={start:{emoji:'🚩',bg:'#1a7a4a'},finish:{emoji:'🏁',bg:'#a02020'},checkpoint:{emoji:'🔵',bg:'#0E96BC'}};
+D.routeMarkers.forEach(function(rm){
+  var cfg=RM_CONFIG[rm.markerType]||RM_CONFIG.checkpoint;
+  var icon=L.divIcon({html:'<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="background:'+cfg.bg+';border:2.5px solid #fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.35);">'+cfg.emoji+'</div><div style="background:'+cfg.bg+';color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap;">'+rm.name+'</div></div>',className:'',iconAnchor:[14,32]});
+  L.marker([rm.lat,rm.lng],{icon}).addTo(map).bindPopup('<strong>'+rm.name+'</strong>');
+});
+D.assemblyPoints.forEach(ap=>{
+  L.marker([ap.lat,ap.lng],{icon:L.divIcon({html:'<div style="font-size:22px;line-height:1;">⭐</div>',className:'',iconSize:[24,24],iconAnchor:[12,12]})}).addTo(map).bindPopup('<strong>Assembly Point</strong><br>'+ap.name);
+});
+D.annotations.forEach(an=>{
+  L.marker([an.lat,an.lng],{icon:L.divIcon({html:'<div style="background:#012A4A;color:#fff;padding:2px 7px;border-radius:3px;font-size:11px;white-space:nowrap;border:1px solid #87CBDE;font-family:Arial,sans-serif;">'+an.text+'</div>',className:'',iconAnchor:[0,8]})}).addTo(map);
+});
+if(bounds.length>1)map.fitBounds(L.latLngBounds(bounds),{padding:[50,50]});
+else if(bounds.length===1)map.setView(bounds[0],16);
+<\/script>
+</body></html>`);
+  win.document.close();
+  addLog('Print map opened in new window');
+}
+
+// ══════════════════════════════════════════════════
+//  TEMPLATES
+// ══════════════════════════════════════════════════
+function openTemplateModal(){
+  document.getElementById('templateModal').style.display='flex';
+  renderTemplateList();
+}
+function closeTemplateModal(){
+  document.getElementById('templateModal').style.display='none';
+}
+function saveTemplate(){
+  if(!S.zones.length&&!S.posts.length){showToast('Add zones and posts first','warn');return;}
+  const name=prompt('Template name (e.g. "Rock N Race Layout"):','Event Layout');
+  if(!name||!name.trim()) return;
+  const t={
+    id:S.nextId++,
+    name:name.trim(),
+    saved:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    zones:S.zones.map(z=>({...z})),
+    posts:S.posts.map(p=>({id:p.id,name:p.name,location:p.location,zoneId:p.zoneId,priority:p.priority,capacity:p.capacity||1,timeStart:p.timeStart,timeEnd:p.timeEnd,notes:p.notes}))
+  };
+  S.templates.push(t);
+  renderTemplateList();
+  addLog(`Template saved: <em>"${t.name}"</em> (${t.zones.length} zones, ${t.posts.length} posts)`);
+  showToast(`Template "${t.name}" saved`);
+}
+function loadTemplate(id){
+  const t=S.templates.find(x=>x.id===id);
+  if(!t) return;
+  if(!confirm(`Load "${t.name}"? This will replace current zones and posts. Officers will be kept but unassigned.`)) return;
+  S.officers.forEach(o=>o.assignedTo=null);
+  // Clear map markers for old posts
+  S.posts.forEach(p=>{if(postMarkers[p.id]){mapMarkerLayer.removeLayer(postMarkers[p.id]);delete postMarkers[p.id];}});
+  const offset=S.nextId;
+  S.zones=t.zones.map(z=>({...z,id:z.id+offset}));
+  S.posts=t.posts.map(p=>({
+    ...p,id:p.id+offset,zoneId:p.zoneId+offset,
+    status:'unstaffed',slots:Array(p.capacity||1).fill(null),lat:null,lng:null
+  }));
+  const maxId=Math.max(0,...t.zones.map(z=>z.id),...t.posts.map(p=>p.id));
+  S.nextId+=maxId+1;
+  refreshZoneSelect(); renderBoard(); renderOfficers(); updateStats(); refreshPostPlacementSelect();
+  closeTemplateModal();
+  addLog(`Template loaded: <em>"${t.name}"</em>`);
+  showToast(`"${t.name}" loaded`);
+}
+function deleteTemplate(id){
+  const t=S.templates.find(x=>x.id===id);
+  if(!t||!confirm(`Delete template "${t.name}"?`)) return;
+  S.templates=S.templates.filter(x=>x.id!==id);
+  renderTemplateList();
+  addLog(`Template deleted: <em>"${t.name}"</em>`);
+  showToast('Template deleted');
+}
+function renderTemplateList(){
+  const el=document.getElementById('templateList');if(!el)return;
+  if(!S.templates.length){
+    el.innerHTML='<div style="text-align:center;padding:24px;color:var(--gray);font-size:12px;font-style:italic;">No templates saved yet. Build a zone/post layout and click Save Current Layout.</div>';
+    return;
+  }
+  el.innerHTML=S.templates.map(t=>`
+    <div class="template-card">
+      <div>
+        <div class="template-name">${t.name}</div>
+        <div class="template-meta">Saved ${t.saved} · ${t.zones.length} zone${t.zones.length!==1?'s':''}, ${t.posts.length} post${t.posts.length!==1?'s':''}</div>
+      </div>
+      <button class="btn btn-teal btn-sm" onclick="loadTemplate(${t.id})">Load</button>
+      <button class="btn btn-ghost btn-sm" onclick="deleteTemplate(${t.id})">Delete</button>
+    </div>`).join('');
+}
+function exportTemplates(){
+  if(!S.templates.length){showToast('No templates to export','warn');return;}
+  const blob=new Blob([JSON.stringify(S.templates,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='CRPD_Event_Templates.json';a.click();
+  addLog('Templates exported as JSON');showToast('Templates exported');
+}
+function importTemplates(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const imported=JSON.parse(e.target.result);
+      if(!Array.isArray(imported)) throw new Error('Expected array');
+      imported.forEach(t=>{
+        const newTId=S.nextId++;
+        const zoneIdMap={};
+        t.zones.forEach(z=>{const nid=S.nextId++;zoneIdMap[z.id]=nid;z.id=nid;});
+        t.posts.forEach(p=>{p.id=S.nextId++;p.zoneId=zoneIdMap[p.zoneId]||p.zoneId;});
+        t.id=newTId;
+        S.templates.push(t);
+      });
+      renderTemplateList();
+      addLog(`Imported ${imported.length} template(s)`);
+      showToast(`${imported.length} template(s) imported`);
+    }catch(err){showToast('Import failed: invalid JSON','warn');}
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+// ══════════════════════════════════════════════════
+//  EXPORT LOG
+// ══════════════════════════════════════════════════
+function exportLog(){
+  const lines=['CRPD SPECIAL EVENT RESOURCE TRACKER — ACTIVITY LOG',
+    `Event: ${S.event.name||'N/A'} | Date: ${S.event.date||'N/A'} | Venue: ${S.event.venue||'N/A'}`,
+    `IC: ${S.event.ic||'N/A'} | Channel: ${S.event.channel||'N/A'}`,
+    `Exported: ${new Date().toLocaleString()}`,'─'.repeat(60)];
+  S.log.forEach(l=>lines.push(`[${l.time}]  ${l.msg.replace(/<[^>]+>/g,'')}`));
+  lines.push('─'.repeat(60),'FINAL ROSTER:');
+  S.officers.forEach(o=>{
+    const post=o.assignedTo?S.posts.find(p=>p.id===o.assignedTo):null;
+    lines.push(`  ${o.rank} ${o.name}${o.badge?' (#'+o.badge+')':''}${o.shift?' | Shift: '+o.shift:''}${o.callSign?' | Call: '+o.callSign:''}${o.vehicle?' | Unit: '+o.vehicle:''}${o.cell?' | Cell: '+o.cell:''}${o.role?' | Role: '+o.role:''} — ${post?'POST: '+post.name:'Unassigned'}`);
+  });
+  lines.push('─'.repeat(60),'POST SUMMARY:');
+  S.posts.forEach(p=>{
+    const assigned=p.slots.map(id=>id?S.officers.find(x=>x.id===id):null).filter(Boolean);
+    const z=S.zones.find(z=>z.id===p.zoneId);
+    const staffing=assigned.length>0?assigned.map(o=>o.name).join(', '):'UNSTAFFED';
+    lines.push(`  [${p.status.toUpperCase()}] ${p.name} (${z?z.name:'?'}) — ${staffing}${p.capacity>1?' ['+assigned.length+'/'+p.capacity+' slots]':''}${p.lat!=null?' [MAP PLACED]':''}${p.notes?' | '+p.notes:''}`);
+  });
+  lines.push('─'.repeat(60),'ROAD CLOSURES / DETOURS:');
+  if(S.closures.length) S.closures.forEach(c=>lines.push(`  [${c.type.toUpperCase()}] ${c.name}`));
+  else lines.push('  None');
+  lines.push('─'.repeat(60),'EVACUATION ROUTES:');
+  if(S.evacRoutes.length) S.evacRoutes.forEach(r=>lines.push(`  [${r.routeType.toUpperCase()}] ${r.name}`));
+  else lines.push('  None');
+  const routeLabelsLog={parade:'PARADE PATH',race:'RACE/RUN COURSE',procession:'PROCESSION',bike:'BIKE ROUTE',staging:'VEHICLE STAGING',other:'OTHER ROUTE'};
+  lines.push('─'.repeat(60),'EVENT ROUTES:');
+  if(S.routes.length) S.routes.forEach(r=>lines.push(`  [${routeLabelsLog[r.routeType]||r.routeType.toUpperCase()}] ${r.name}`));
+  else lines.push('  None');
+  lines.push('─'.repeat(60),'ROUTE MARKERS (START / FINISH / CHECKPOINTS):');
+  if(S.routeMarkers.length) S.routeMarkers.forEach(rm=>lines.push(`  [${rm.markerType.toUpperCase()}] ${rm.name}`));
+  else lines.push('  None');
+  lines.push('─'.repeat(60),'ASSEMBLY POINTS:');
+  if(S.assemblyPoints.length) S.assemblyPoints.forEach(a=>lines.push(`  [ASSEMBLY] ${a.name}`));
+  else lines.push('  None');
+  lines.push('─'.repeat(60),'EQUIPMENT & RESOURCES:');
+  if(S.resources.length) S.resources.forEach(r=>{
+    const zone=r.zone?S.zones.find(z=>z.id==r.zone):null;
+    lines.push(`  [${r.status.toUpperCase()}] ${r.name} (${r.category}) x${r.qty}${zone?' | '+zone.name:''}${r.location?' | '+r.location:''}`);
+  });
+  else lines.push('  None');
+  lines.push('─'.repeat(60),'EVENT TIMELINE:');
+  if(S.timeline.length) S.timeline.forEach(e=>lines.push(`  ${e.time}  ${e.label}${e.notes?' — '+e.notes:''}`));
+  else lines.push('  None');
+  lines.push('─'.repeat(60),'ORGANIZER CONTACTS:');
+  if(S.contacts.length) S.contacts.forEach(c=>lines.push(`  ${c.name}${c.title?' ('+c.title+')':''}${c.phone?' | '+c.phone:''}${c.alt?' | Alt: '+c.alt:''}${c.email?' | '+c.email:''}`));
+  else lines.push('  None');
+  lines.push('─'.repeat(60),'SAFETY PLANS — KEY INFO:');
+  S.scenarios.forEach(sc=>{
+    lines.push(`\n  [${sc.icon} ${sc.title.toUpperCase()}]`);
+    lines.push(`  Notify: ${sc.notify}`);
+    lines.push(`  Staging: ${sc.staging}`);
+    lines.push(`  Ref: ${sc.sopRef}`);
+  });
+  const blob=new Blob([lines.join('\n')],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download=`CRPD_Event_Log_${(S.event.name||'event').replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();URL.revokeObjectURL(url);
+  showToast('Log exported');
+}
+
+// ══════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════
+function showToast(msg,type='info'){
+  const c=document.getElementById('toastContainer');
+  const t=document.createElement('div');t.className='toast';
+  if(type==='warn') t.style.borderLeftColor='var(--amber)';
+  t.textContent=msg;c.appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+
+// ══════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════
+window.addEventListener('load',()=>{
+  initMap();
+  initSafetyPlans();
+  renderOfficers();renderBoard();updateStats();
+  addLog('Tracker initialized. Use ⚙ Event Setup to configure event details.');
+});
+</script>
+</body>
+</html>
