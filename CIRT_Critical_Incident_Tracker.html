@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -278,86 +279,149 @@ html,body{height:100%;font-family:var(--font);color:var(--text);background:var(-
 }
 @keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
 
-/* ── RESPONSIVE / TABLET / IPAD ── */
+/* ══ RESPONSIVE — DESKTOP FIRST ══════════════════════════════════════════════
+   1024px  = iPad landscape / small laptop
+   768px   = iPad portrait
+   640px   = large phone landscape
+   480px   = phone portrait
+═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── SHARED MOBILE BASE (applies ≤1024px — iPad landscape and below) ── */
 @media (max-width:1024px){
-  /* Allow body to scroll on iOS Safari — critical for iPad */
-  html,body{overflow:auto;height:auto;min-height:100%}
-  #app-wrap{height:auto;min-height:100vh;display:flex;flex-direction:column}
-  #tab-content{flex:1;overflow:visible;display:flex;flex-direction:column}
-  .tab-panel{display:none;overflow:visible;padding:12px;flex-direction:column;height:auto}
-  .tab-panel.active{display:flex}
-  /* Map, diagram, reco keep their internal scroll behavior */
+
+  /* Core scroll fix — iOS Safari blocks scroll when overflow:hidden on body */
+  html,body{overflow:auto!important;height:auto!important;min-height:100%}
+  #app-wrap{height:auto;min-height:100vh}
+  #tab-content{overflow:visible;height:auto}
+  .tab-panel{display:none;overflow:visible;padding:12px;height:auto}
+  .tab-panel.active{display:flex;flex-direction:column}
+
+  /* Map/Diagram/Reco are canvas-based — keep internal scroll */
   #tab-map.tab-panel,#tab-diagram.tab-panel,#tab-reco.tab-panel{
-    overflow:hidden;height:calc(100vh - 120px);min-height:400px
+    overflow:hidden!important;height:calc(100vh - 130px)!important;min-height:400px
   }
 
-  /* Header — stack actions below brand on small screens */
-  #app-header{flex-wrap:wrap;padding:8px 10px;gap:8px}
-  .hdr-meta{display:none} /* hide case/agency/date meta — visible in form fields */
+  /* Header */
+  #app-header{flex-wrap:wrap;padding:8px 10px;gap:6px}
+  .hdr-meta{display:none}
   .hdr-actions{margin-left:0;flex-wrap:wrap;gap:4px;width:100%}
-  .btn-h{font-size:10px;padding:4px 8px}
   .hdr-brand h1{font-size:12px;white-space:normal;line-height:1.3}
+  .btn-h{font-size:10px;padding:4px 8px}
 
-  /* Tab bar — scrollable, slightly larger tap targets */
+  /* Tab bar */
   #tab-bar{-webkit-overflow-scrolling:touch}
-  .tab-btn{padding:8px 12px;font-size:10px}
+  .tab-btn{padding:8px 11px;font-size:10px}
 
-  /* Grids — collapse 4-col to 2-col, 3-col to 2-col on tablet */
+  /* Grids — 4→2, 3→2 */
   .grid-4{grid-template-columns:1fr 1fr}
   .grid-3{grid-template-columns:1fr 1fr}
 
-  /* Role rows — switch from fixed-width columns to stacked card layout */
+  /* ── ROLE ROWS (Assignments) — key fix ──
+     Switch from 5-column fixed to a proper 2-column card per role */
   .role-row{
-    display:flex;flex-direction:column;gap:5px;
-    padding:8px;margin-bottom:6px;
-    background:var(--teal-light);border-radius:4px;
-    border-bottom:none
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+    width:100%;
+    padding:10px;
+    margin-bottom:8px;
+    background:var(--teal-light);
+    border-radius:4px;
+    border-bottom:none;
+    align-items:start
   }
-  .role-row input{font-size:12px;padding:6px 8px}
-  .role-label{font-size:11px;color:var(--navy);font-weight:bold;margin-bottom:2px}
+  .role-label{
+    grid-column:1 / -1;
+    font-size:12px;font-weight:bold;color:var(--navy);
+    padding-bottom:5px;margin-bottom:2px;
+    border-bottom:1px solid var(--teal-med)
+  }
+  .role-row input{
+    width:100%;font-size:12px;padding:6px 8px;
+    border:1px solid var(--border);border-radius:var(--r);
+    font-family:var(--font);color:var(--text);background:white
+  }
 
-  /* Tables — horizontal scroll wrapper */
+  /* Tables */
   .dt{font-size:11px}
   .dt th,.dt td{padding:5px 6px}
-
-  /* Canvass table — allow horizontal scroll */
   .cvs-table{font-size:10px}
 
   /* Cards */
   .card-body{padding:10px}
   .card-hdr{font-size:10px;padding:7px 10px;flex-wrap:wrap;gap:4px}
 
-  /* Map layout — collapse timeline panel on tablet */
+  /* Map — stack timeline above map */
   #map-layout{flex-direction:column}
-  #timeline-panel{width:100%;min-width:unset;max-height:180px;border-right:none;border-bottom:2px solid var(--teal)}
-  #tl-list{max-height:90px}
+  #timeline-panel{
+    width:100%;min-width:unset;max-height:175px;
+    border-right:none;border-bottom:2px solid var(--teal)
+  }
+  #tl-list{max-height:85px}
 
-  /* Diagram layout — collapse left panel */
+  /* Diagram — stack controls above canvas */
   #diagram-layout{flex-direction:column}
-  #diagram-panel{width:100%;max-height:200px;overflow-y:auto;border-right:none;border-bottom:2px solid var(--teal);flex-direction:row;flex-wrap:wrap;gap:0}
-  .dg-section{padding:8px 10px;border-bottom:none;border-right:1px solid rgba(135,203,222,.15);flex:1;min-width:150px}
+  #diagram-panel{
+    width:100%;max-height:190px;overflow-y:auto;
+    border-right:none;border-bottom:2px solid var(--teal);
+    flex-direction:row;flex-wrap:wrap
+  }
+  .dg-section{padding:8px 10px;border-bottom:none;border-right:1px solid rgba(135,203,222,.15);flex:1;min-width:140px}
   .dg-action-row{flex-direction:row;padding:8px 10px;margin-top:0;border-top:1px solid rgba(135,203,222,.15);width:100%}
   #diagram-canvas{min-height:300px}
 
-  /* Reconstruction layout — stack left panel above */
-  #reco-layout{flex-direction:column}
-  #reco-layout > div:first-child{width:100%;border-right:none;border-bottom:2px solid var(--teal-med);max-height:260px;overflow-y:auto}
+  /* Reconstruction — stack controls above timeline */
+  #reco-layout{flex-direction:column!important}
+  #reco-layout > div:first-child{
+    width:100%!important;border-right:none!important;
+    border-bottom:2px solid var(--teal-med);max-height:240px;overflow-y:auto
+  }
 
-  /* Person interview 2-col — collapse to single col */
+  /* Person interview columns — single col */
   .person-interview-grid{grid-template-columns:1fr!important}
 }
 
+/* ── IPAD PORTRAIT + SMALL TABLETS (≤768px) ── */
+@media (max-width:768px){
+
+  /* Grids tighten further */
+  .grid-4{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr 1fr}
+  .grid-2{grid-template-columns:1fr 1fr}
+
+  /* Role rows stay 2-col but inputs get a bit more breathing room */
+  .role-row{gap:5px;padding:8px}
+
+  /* Header actions wrap tighter */
+  .btn-h{font-size:9px;padding:3px 7px}
+  .tab-btn{padding:7px 10px;font-size:10px}
+
+  /* Activation window indicator wraps */
+  #activation-window-indicator{font-size:10px}
+
+  /* Person cards — attorney grid tighter */
+  .person-atty-block .grid-4{grid-template-columns:1fr 1fr}
+}
+
+/* ── PHONE (≤640px) ── */
 @media (max-width:640px){
-  /* Phone — further collapse */
-  .grid-4,.grid-3,.grid-2{grid-template-columns:1fr}
+
+  /* All grids collapse to single column on phone */
+  .grid-4,.grid-3,.grid-2{grid-template-columns:1fr!important}
+
+  /* Role rows go single column on phone */
+  .role-row{grid-template-columns:1fr}
+
   #app-header{padding:6px 8px}
   .hdr-brand h1{font-size:11px}
-  .btn-h{font-size:9px;padding:3px 6px}
-  .tab-btn{padding:7px 9px;font-size:9px}
+  .btn-h{font-size:9px;padding:3px 5px}
+  .tab-btn{padding:6px 8px;font-size:9px}
   .card-body{padding:8px}
-  #timeline-panel{max-height:150px}
-  #diagram-panel{max-height:160px}
+  .card-hdr{font-size:9px}
+  #timeline-panel{max-height:140px}
+  #diagram-panel{max-height:150px}
 }
+
 
 
 @media print{
